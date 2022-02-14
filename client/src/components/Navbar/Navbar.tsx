@@ -17,10 +17,6 @@ const Navbar = (): ReactElement => {
 					<div style={{ flexGrow: 1 }}></div>
 
 					<DarkModeToggler />
-
-					<Link to="/settings" className="navbar-link">
-						Settings
-					</Link>
 				</Toolbar>
 			</AppBar>
 		</div>
