@@ -15,6 +15,7 @@
 		.channel-avatar {
 			width: 8rem;
 			height: 8rem;
+			border-radius: 0.25rem;
 		}
 
 		.channel-info {
@@ -84,7 +85,7 @@
 
 		.video {
 			border: 1px solid var(--card-border);
-			border-radius: 0.5rem;
+			border-radius: 0.25rem;
 			background-color: var(--card-background);
 
 			.video-thumbnail {

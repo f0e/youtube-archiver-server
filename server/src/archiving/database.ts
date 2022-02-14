@@ -121,7 +121,7 @@ class Database {
 
 	onChannelParsed = async (channelId: string) => {
 		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
-		const channel = acceptedChannelQueue.findOne({ id: channelId });
+		const channel = await acceptedChannelQueue.findOne({ id: channelId });
 
 		const channels = this.db.collection('channels');
 

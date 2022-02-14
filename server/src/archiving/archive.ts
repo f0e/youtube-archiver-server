@@ -28,6 +28,7 @@ async function addChannel(channelId: string) {
 
 		// channel not filtered, store it.
 		await db.queueChannel(channelId, channelData, videos);
+		console.log(`parsed ${channelData.author}`);
 
 		return true;
 	};
@@ -62,7 +63,10 @@ async function parseChannelVideos(channel: any) {
 		const { videoData, commenters } = await youtube.parseVideo(video.videoId);
 
 		console.log('parsing commenters');
-		await Promise.all(commenters.map((commenter) => addChannel(commenter)));
+		// await Promise.all(commenters.map((commenter) => addChannel(commenter)));
+		for (const commenter of commenters) {
+			await addChannel(commenter);
+		}
 
 		console.log('done');
 		await db.addVideo(videoId, videoData);
@@ -72,7 +76,7 @@ async function parseChannelVideos(channel: any) {
 
 	console.log('parsed all videos');
 
-	await db.isChannelParsed;
+	await db.onChannelParsed(channel.id);
 }
 
 let parsing = false; // stupid solution todo: better please
