@@ -1,0 +1,106 @@
+.filter-page {
+	max-width: 60rem;
+	margin: 0 auto;
+}
+
+.accept-or-reject {
+	display: flex;
+	justify-content: center;
+	gap: 1rem;
+}
+
+.channel-header {
+	display: flex;
+	gap: 1rem;
+
+	.channel-avatar {
+		width: 8rem;
+		height: 8rem;
+		margin-top: 0.4rem;
+	}
+
+	.channel-info {
+		.channel-name {
+			font-weight: bold;
+			font-size: 2em;
+			margin-bottom: 0.3rem;
+		}
+
+		.channel-subscriptions {
+			opacity: 0.75;
+			font-size: 0.9em;
+			margin-bottom: 0.5rem;
+		}
+
+		.channel-tags {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.2rem;
+
+			.channel-tag {
+				display: inline;
+
+				padding: 0.3rem 0.5rem;
+				font-size: 0.8em;
+
+				border: 1px solid var(--card-border);
+				border-radius: 0.5rem;
+
+				background-color: var(--card-background);
+
+				cursor: pointer;
+
+				transition: background-color 0.1s;
+
+				&:hover {
+					background-color: rgba(255, 255, 255, 0.1);
+				}
+			}
+		}
+	}
+}
+
+.no-videos {
+	text-align: center;
+
+	opacity: 0.75;
+}
+
+.channel-videos {
+	display: grid;
+	gap: 0.7rem;
+	grid-template-columns: auto auto auto;
+
+	.video {
+		border: 1px solid var(--card-border);
+		border-radius: 0.5rem;
+		background-color: var(--card-background);
+
+		.video-thumbnail {
+			position: relative;
+
+			img {
+				width: 100%;
+				object-fit: contain;
+			}
+
+			.video-duration {
+				position: absolute;
+
+				bottom: 0.5rem;
+				right: 0.5rem;
+
+				user-select: none;
+			}
+		}
+
+		.video-details {
+			padding: 1rem;
+			padding-top: 0.7rem;
+
+			.views-and-date {
+				opacity: 0.75;
+			}
+		}
+	}
+}
