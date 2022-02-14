@@ -80,7 +80,7 @@
 	.channel-videos {
 		display: grid;
 		gap: 0.7rem;
-		grid-template-columns: auto auto auto;
+		grid-template-columns: 1fr 1fr 1fr;
 
 		.video {
 			border: 1px solid var(--card-border);
