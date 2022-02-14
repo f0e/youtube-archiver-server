@@ -1,0 +1,16 @@
+{
+	"name": "bhop-archiver",
+	"private": true,
+	"scripts": {
+		"start:server": "cd server && yarn start",
+		"start:client": "cd client && yarn start",
+		"dev:server": "cd server && yarn run dev",
+		"start": "concurrently \"yarn start:server\" \"yarn start:client\"",
+		"dev": "concurrently \"yarn dev:server\" \"yarn start:client\""
+	},
+	"dependencies": {
+		"concurrently": "^6.4.0",
+		"ts-node": "^10.4.0",
+		"typescript": "^4.5.2"
+	}
+}
