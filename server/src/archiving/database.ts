@@ -1,5 +1,5 @@
 import { Collection, Db, MongoClient } from 'mongodb';
-import { acceptedChannelListener, clientChannelListener } from './archive';
+import { acceptedChannelListener, clientQueueListener } from './archive';
 
 const updateHistoryArray = (
 	collection: Collection,
@@ -34,31 +34,31 @@ class Database {
 		this.db = this.client.db(process.env.DB_TABLE);
 	};
 
-	addChannel = async (channelId: string, channelData: any) => {
-		const channels = this.db.collection('channels');
+	// addChannel = async (channelId: string, channelData: any) => {
+	// 	const channels = this.db.collection('channels');
 
-		const name = channelData.author;
-		const avatar = channelData.authorThumbnails.at(-1);
+	// 	const name = channelData.author;
+	// 	const avatar = channelData.authorThumbnails.at(-1);
 
-		const channel = await channels.findOne({ id: channelId });
-		if (channel) {
-			console.log(
-				`channel '${name}' already exists, updating names and avatars`
-			);
+	// 	const channel = await channels.findOne({ id: channelId });
+	// 	if (channel) {
+	// 		console.log(
+	// 			`channel '${name}' already exists, updating names and avatars`
+	// 		);
 
-			updateHistoryArray(channels, channel, channelId, 'names', name);
-			updateHistoryArray(channels, channel, channelId, 'avatars', avatar);
-		} else {
-			await channels.insertOne({
-				id: channelId,
-				names: [name],
-				avatars: [avatar],
-				data: channelData,
-			});
+	// 		updateHistoryArray(channels, channel, channelId, 'names', name);
+	// 		updateHistoryArray(channels, channel, channelId, 'avatars', avatar);
+	// 	} else {
+	// 		await channels.insertOne({
+	// 			id: channelId,
+	// 			names: [name],
+	// 			avatars: [avatar],
+	// 			data: channelData,
+	// 		});
 
-			console.log(`added channel '${name}'`);
-		}
-	};
+	// 		console.log(`added channel '${name}'`);
+	// 	}
+	// };
 
 	addVideo = async (videoId: string, videoData: any) => {
 		const videos = this.db.collection('videos');
@@ -78,56 +78,55 @@ class Database {
 				titles: [title],
 				data: videoData,
 			});
-
-			console.log(`added video '${title}'`);
 		}
 	};
 
-	queueChannels = async (channels: string[]) => {
+	queueChannel = async (channelId: string, channelData: any, videos: any) => {
 		const channelQueue = this.db.collection('channelQueue');
 
-		let newChannels = 0;
-		for (const channelId of channels) {
-			// check if the channel has already been parsed
-			if (await this.channelParsed(channelId)) continue;
+		const channel = {
+			id: channelId,
+			data: channelData,
+			videos: videos,
+		};
 
-			// check if the channel is already queued
-			if (await this.channelQueued(channelId)) continue;
+		await channelQueue.insertOne(channel);
 
-			newChannels++;
-			await channelQueue.insertOne({ id: channelId });
-			clientChannelListener.emit('channel', channelId);
-		}
-
-		console.log(`${newChannels} new channels queued`);
+		clientQueueListener.emit('channel', channel);
 	};
 
-	removeFromQueue = async (channelId: string) => {
+	acceptOrRejectChannel = async (channelId: string, accepted: boolean) => {
 		const channelQueue = this.db.collection('channelQueue');
-		await channelQueue.deleteOne({ id: channelId });
-	};
+		const channel = await channelQueue.findOne({ id: channelId });
 
-	acceptChannel = async (channelId: string) => {
-		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
-		await acceptedChannelQueue.insertOne({ id: channelId });
+		let newQueue;
+		if (accepted) newQueue = this.db.collection('acceptedChannelQueue');
+		else newQueue = this.db.collection('rejectedChannels');
 
-		// also remove from the queue
-		await this.removeFromQueue(channelId);
+		await newQueue.insertOne(channel);
+		await channelQueue.deleteOne(channel);
 
 		acceptedChannelListener.emit('accepted');
-	};
-
-	filterChannel = async (channelId: string) => {
-		const filteredChannels = this.db.collection('filteredChannels');
-		await filteredChannels.insertOne({ id: channelId });
-
-		// also remove from the queue
-		await this.removeFromQueue(channelId);
 	};
 
 	removeFromAccepted = async (channelId: string) => {
 		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
 		await acceptedChannelQueue.deleteOne({ id: channelId });
+	};
+
+	filterChannel = async (channelId: string) => {
+		const filteredChannels = this.db.collection('filteredChannels');
+		await filteredChannels.insertOne({ id: channelId });
+	};
+
+	onChannelParsed = async (channelId: string) => {
+		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
+		const channel = acceptedChannelQueue.findOne({ id: channelId });
+
+		const channels = this.db.collection('channels');
+
+		await channels.insertOne(channel);
+		await acceptedChannelQueue.deleteOne(channel);
 	};
 
 	getNextChannel = async () => {
@@ -136,10 +135,15 @@ class Database {
 		const firstChannel = await acceptedChannelQueue.findOne();
 
 		if (!firstChannel) return null;
-		else return firstChannel.id;
+		else return firstChannel;
 	};
 
-	getWaitingChannelCount = async () => {
+	getQueuedChannelCount = async () => {
+		const channelQueue = this.db.collection('channelQueue');
+		return await channelQueue.countDocuments();
+	};
+
+	getAcceptedChannelCount = async () => {
 		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
 		return await acceptedChannelQueue.countDocuments();
 	};
@@ -148,20 +152,25 @@ class Database {
 		const channelQueue = this.db.collection('channelQueue');
 		const queue = await channelQueue.find().toArray();
 		if (queue.length == 0) return [];
-		else return queue.map((channel) => channel.id);
+		else return queue;
 	};
 
-	channelQueued = async (channelId: string) => {
+	isChannelQueued = async (channelId: string) => {
 		const channelQueue = this.db.collection('channelQueue');
 		return await channelQueue.findOne({ id: channelId });
 	};
 
-	channelParsed = async (channelId: string) => {
+	isChannelAccepted = async (channelId: string) => {
+		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
+		return await acceptedChannelQueue.findOne({ id: channelId });
+	};
+
+	isChannelParsed = async (channelId: string) => {
 		const channels = this.db.collection('channels');
 		return await channels.findOne({ id: channelId });
 	};
 
-	videoParsed = async (videoId: string) => {
+	isVideoParsed = async (videoId: string) => {
 		const videos = this.db.collection('videos');
 		return await videos.findOne({ id: videoId });
 	};

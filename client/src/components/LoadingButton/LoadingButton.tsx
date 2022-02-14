@@ -4,7 +4,7 @@ import { Button, CircularProgress } from '@mui/material';
 import './LoadingButton.scss';
 
 interface LoadingButtonProps {
-	onClick?: () => void;
+	onClick?: (e: any) => void;
 	label: string;
 	style?: Record<string, unknown>;
 	loading?: boolean;

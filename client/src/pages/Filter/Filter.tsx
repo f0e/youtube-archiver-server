@@ -14,9 +14,8 @@ import './Filter.scss';
 
 interface Channel {
 	id: string;
-
-	data?: any;
-	videos?: any;
+	data: any;
+	videos: any;
 }
 
 interface ChannelProps {
@@ -51,62 +50,57 @@ const ChannelCard = ({
 	return (
 		<Card variant="outlined">
 			<CardContent>
-				{!channel.data ? (
-					<Loader message="loading channel..." />
-				) : (
-					<>
-						<a href={channel.data.authorUrl}>
-							<div className="channel-header">
-								<img
-									className="channel-avatar"
-									src={channel.data.authorThumbnails.at(-1).url}
-									alt={`${channel.data.author}'s avatar`}
-								/>
-								<div className="channel-info">
-									<div className="top-info">
-										<div>
-											<div className="channel-name">{channel.data.author}</div>
-											<div className="channel-subscriptions">
-												{channel.data.subscriberText}
-											</div>
-										</div>
+				<div className="channel-header">
+					<a href={channel.data.authorUrl}>
+						<img
+							className="channel-avatar"
+							src={channel.data.authorThumbnails.at(-1).url}
+							alt={`${channel.data.author}'s avatar`}
+						/>
+					</a>
 
-										<div className="accept-or-reject">
-											<LoadingButton
-												onClick={() => acceptOrReject(true)}
-												variant="contained"
-												color="primary"
-												label="accept"
-												loading={accepting}
-											/>
-											<LoadingButton
-												onClick={() => acceptOrReject(false)}
-												variant="contained"
-												color="secondary"
-												label="reject"
-												loading={rejecting}
-											/>
-										</div>
-									</div>
-									<div className="channel-tags">
-										{channel.data.tags &&
-											channel.data.tags.map((tag: string, i: number) => (
-												<div key={`tag-${i}`} className="channel-tag">
-													{tag}
-												</div>
-											))}
-									</div>
+					<div className="channel-info">
+						<div className="top-info">
+							<div>
+								<a href={channel.data.authorUrl}>
+									<div className="channel-name">{channel.data.author}</div>
+								</a>
+								<div className="channel-subscriptions">
+									{channel.data.subscriberText}
 								</div>
 							</div>
-						</a>
 
-						<p>{channel.data.description}</p>
-					</>
-				)}
+							<div className="accept-or-reject">
+								<LoadingButton
+									onClick={(e: any) => acceptOrReject(true)}
+									variant="contained"
+									color="primary"
+									label="accept"
+									loading={accepting}
+								/>
+								<LoadingButton
+									onClick={(e: any) => acceptOrReject(false)}
+									variant="contained"
+									color="secondary"
+									label="reject"
+									loading={rejecting}
+								/>
+							</div>
+						</div>
+						<div className="channel-tags">
+							{channel.data.tags &&
+								channel.data.tags.map((tag: string, i: number) => (
+									<div key={`tag-${i}`} className="channel-tag">
+										{tag}
+									</div>
+								))}
+						</div>
+					</div>
+				</div>
 
-				{!channel.videos ? (
-					<Loader message="loading videos..." />
-				) : channel.videos.length == 0 ? (
+				<p>{channel.data.description}</p>
+
+				{channel.videos.length == 0 ? (
 					<div className="no-videos">no videos</div>
 				) : (
 					<div className="channel-videos">
@@ -116,9 +110,7 @@ const ChannelCard = ({
 									<div className="video-thumbnail">
 										<img
 											src={video.videoThumbnails.at(-1).url}
-											alt={`thumbnail for video '${video.title}' by ${
-												channel.data ? channel.data.author : 'loading'
-											}`}
+											alt={`thumbnail for video '${video.title}' by ${channel.data.author}`}
 										/>
 
 										<div className="video-duration">{video.durationText}</div>
@@ -163,21 +155,35 @@ const ChannelQueue = ({
 };
 
 const Filter = (): ReactElement => {
-	const showingChannels = 10;
-
-	const [channelIds, setChannelIds] = useState<string[]>([]);
 	const [channels, setChannels] = useState<Channel[]>([]);
+	const [lastId, setLastId] = useState<string | null>(null);
+	const [queueCount, setQueueCount] = useState(0);
 
 	const ws = useRef<WebSocket | null>(null);
-
-	const Api = useContext(ApiContext);
 
 	useEffect(() => {
 		ws.current = new WebSocket('ws://localhost:3001/ws/channelQueue');
 
+		ws.current.onopen = () => console.log('connected');
+		ws.current.onclose = () => console.log('disconnected');
+
 		ws.current.onmessage = async (e: MessageEvent) => {
-			const channels = JSON.parse(e.data);
-			setChannelIds((cur) => cur.concat(channels));
+			const message: any = JSON.parse(e.data);
+			console.log(message);
+			switch (message.type) {
+				case 'channels': {
+					setChannels((cur) => cur.concat(message.data));
+
+					const lastChannel = message.data.at(-1);
+					if (lastChannel) setLastId(lastChannel.id);
+
+					break;
+				}
+				case 'count': {
+					setQueueCount(message.data);
+					break;
+				}
+			}
 		};
 
 		const wsCurrent = ws.current;
@@ -186,76 +192,27 @@ const Filter = (): ReactElement => {
 		};
 	}, []);
 
-	const updateChannels = () => {
-		const newChannels = Math.min(
-			channelIds.length,
-			showingChannels - channels.length
+	const requestNewChannel = () => {
+		if (!ws.current) return;
+
+		ws.current.send(
+			JSON.stringify({
+				type: 'getNewChannel',
+				lastId,
+			})
 		);
-
-		if (newChannels <= 0) return;
-
-		for (let i = 0; i < newChannels; i++) {
-			const channelId = channelIds[i];
-
-			const channel: Channel = { id: channelId };
-			setChannels((cur) => cur.concat(channel));
-
-			const updateChannel = (channelData?: any, videos?: any) => {
-				setChannels((cur) => {
-					const copy = [...cur];
-					const channel = copy.find((channel) => channel.id == channelId);
-					if (channel) {
-						if (channelData) channel.data = channelData;
-						if (videos) channel.videos = videos;
-					}
-					return copy;
-				});
-			};
-
-			const loadChannel = async (channelId: string) => {
-				const channelData = await Api.get('get-channel-info', {
-					channelId,
-				});
-
-				updateChannel(channelData, null);
-			};
-
-			const loadVideos = async (channelId: string) => {
-				const videos = await Api.get('get-channel-videos', {
-					channelId,
-				});
-
-				updateChannel(null, videos);
-			};
-
-			Promise.all([loadChannel(channelId), loadVideos(channelId)]);
-		}
-
-		// remove those channels from the queue
-		setChannelIds((cur) => {
-			cur.splice(0, newChannels);
-			return cur;
-		});
 	};
-
-	useEffect(() => {
-		let mounted = true;
-
-		updateChannels();
-
-		return () => {
-			mounted = false;
-		};
-	}, [channelIds]);
 
 	const onAcceptReject = (channelId: string, accepted: boolean) => {
 		setChannels((cur) => cur.filter((channel) => channel.id != channelId));
+
+		requestNewChannel();
 	};
 
 	return (
 		<main className="filter-page">
 			<h1 style={{ marginBottom: '0.5rem' }}>channel filter</h1>
-			<div>{channelIds.length} queued</div>
+			<div>{queueCount} queued</div>
 			<br />
 
 			<ChannelQueue channels={channels} onAcceptReject={onAcceptReject} />

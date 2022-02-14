@@ -7,37 +7,13 @@ import db from '../archiving/database';
 
 const router = express.Router();
 
-router.get(
-	'/get-channel-info',
-	query('channelId').isString(),
-	async (req, res) => {
-		const { channelId } = validate(req);
-
-		const channelData = await youtube.parseChannel(channelId);
-
-		return res.json(channelData);
-	}
-);
-
-router.get(
-	'/get-channel-videos',
-	query('channelId').isString(),
-	async (req, res) => {
-		const { channelId } = validate(req);
-
-		const videos = await youtube.getVideos(channelId);
-
-		return res.json(videos);
-	}
-);
-
 router.post(
 	'/accept-channel',
 	body('channelId').isString(),
 	async (req, res) => {
 		const { channelId } = validate(req);
 
-		await db.acceptChannel(channelId);
+		await db.acceptOrRejectChannel(channelId, true);
 
 		return res.json({ success: true });
 	}
@@ -49,7 +25,7 @@ router.post(
 	async (req, res) => {
 		const { channelId } = validate(req);
 
-		await db.filterChannel(channelId);
+		await db.acceptOrRejectChannel(channelId, false);
 
 		return res.json({ success: true });
 	}

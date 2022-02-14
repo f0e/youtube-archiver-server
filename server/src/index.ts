@@ -42,7 +42,7 @@ async function start() {
 
 	await app
 		.listen(port, () => {
-			console.log(`app started on port ${port}`);
+			console.log(`app started on port ${port}\n`);
 		})
 		.on('error', (e) => {
 			console.log(`fatal error: ${e.message}`);

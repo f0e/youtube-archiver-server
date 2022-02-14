@@ -5,37 +5,47 @@ import db from './database';
 import EventEmitter from 'events';
 
 // event emitters for websockets
-export const clientChannelListener = new EventEmitter();
+export const clientQueueListener = new EventEmitter();
 export const acceptedChannelListener = new EventEmitter();
 
-async function parseChannel(channelId: string) {
-	// get channel data
-	console.log(
-		`parsing channel ${channelId} (https://www.youtube.com/channel/${channelId})`
-	);
-	const channelData = await youtube.parseChannel(channelId);
-	console.log(`got channel data, channel name '${channelData.author}'`);
+async function addChannel(channelId: string) {
+	if (await db.isChannelQueued(channelId)) return false;
+	if (await db.isChannelAccepted(channelId)) return false;
+	if (await db.isChannelParsed(channelId)) return false;
 
-	// filter by channel
-	if (filters.filterChannel(channelData))
-		throw new Error('filtered by channel');
+	const add = async () => {
+		// get channel data
+		const channelData = await youtube.parseChannel(channelId);
 
-	// get videos
-	let videos = await youtube.getVideos(channelId);
-	console.log(`got ${videos.length} videos`);
+		// filter by channel
+		if (filters.filterChannel(channelData)) return false;
 
-	// filter by videos
-	if (filters.filterChannelVideos(videos))
-		throw new Error('filtered by videos');
+		// get videos
+		let videos = await youtube.getVideos(channelId);
 
-	// channel not filtered, store it.
-	await db.addChannel(channelId, channelData);
+		// filter by videos
+		if (filters.filterChannelVideos(videos)) return false;
 
-	for (const video of videos) {
+		// channel not filtered, store it.
+		await db.queueChannel(channelId, channelData, videos);
+
+		return true;
+	};
+
+	const added = await add();
+	if (!added) {
+		await db.filterChannel(channelId);
+	}
+}
+
+async function parseChannelVideos(channel: any) {
+	console.log(`parsing ${channel.data.author}'s videos`);
+
+	for (const video of channel.videos) {
 		const { videoId } = video;
 
 		// don't re-parse videos
-		if (await db.videoParsed(videoId)) {
+		if (await db.isVideoParsed(videoId)) {
 			console.log(`already parsed video '${video.title}'`);
 			continue;
 		}
@@ -51,13 +61,18 @@ async function parseChannel(channelId: string) {
 		console.log(`parsing video '${video.title}' (https://youtu.be/${videoId})`);
 		const { videoData, commenters } = await youtube.parseVideo(video.videoId);
 
+		console.log('parsing commenters');
+		await Promise.all(commenters.map((commenter) => addChannel(commenter)));
+
+		console.log('done');
 		await db.addVideo(videoId, videoData);
-		await db.queueChannels(commenters);
 	}
 
 	console.log();
 
 	console.log('parsed all videos');
+
+	await db.isChannelParsed;
 }
 
 let parsing = false; // stupid solution todo: better please
@@ -66,25 +81,21 @@ async function parseChannels() {
 	parsing = true;
 
 	while (true) {
-		const queuedCount = await db.getWaitingChannelCount();
+		const queuedCount = await db.getAcceptedChannelCount();
 		console.log(`parsing new channel... ${queuedCount} channels queued\n`);
 
 		// parse the next channel in the queue
-		const channelId = await db.getNextChannel();
-		if (!channelId) {
+		const channel = await db.getNextChannel();
+		if (!channel) {
 			console.log('no more channels queued');
 			parsing = false;
 			return;
 		}
 
-		try {
-			await parseChannel(channelId);
-		} catch (e) {
-			console.log(`💀 ${e.message}`);
-		}
+		await parseChannelVideos(channel);
 
 		// remove this channel from the queue
-		await db.removeFromAccepted(channelId);
+		await db.removeFromAccepted(channel.id);
 	}
 
 	// // console.log('downloading video');
@@ -93,8 +104,8 @@ async function parseChannels() {
 }
 
 export async function start() {
-	if (!(await db.channelParsed(process.env.START_CHANNEL))) {
-		await db.queueChannels([process.env.START_CHANNEL]);
+	if (!(await db.isChannelParsed(process.env.START_CHANNEL))) {
+		await addChannel(process.env.START_CHANNEL);
 	}
 
 	parseChannels();
