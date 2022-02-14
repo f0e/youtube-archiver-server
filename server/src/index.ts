@@ -9,6 +9,7 @@ import morgan from 'morgan';
 import enableWs from 'express-ws';
 
 import db from './archiving/database';
+import * as archive from './archiving/archive';
 
 // setup
 const appBase = express();
@@ -37,6 +38,7 @@ async function start() {
 	const port = process.env.PORT;
 
 	await db.connect();
+	await archive.start();
 
 	await app
 		.listen(port, () => {

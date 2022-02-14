@@ -3,6 +3,7 @@ import { query, body } from 'express-validator';
 import validate from '../util/validate';
 
 import * as youtube from '../archiving/youtube';
+import db from '../archiving/database';
 
 const router = express.Router();
 
@@ -31,12 +32,28 @@ router.get(
 );
 
 router.post(
+	'/accept-channel',
+	body('channelId').isString(),
+	async (req, res) => {
+		const { channelId } = validate(req);
+
+		console.log('accepting channel', channelId);
+
+		await db.acceptChannel(channelId);
+
+		return res.json({ success: true });
+	}
+);
+
+router.post(
 	'/filter-channel',
 	body('channelId').isString(),
 	async (req, res) => {
 		const { channelId } = validate(req);
 
 		console.log('filtering channel', channelId);
+
+		await db.filterChannel(channelId);
 
 		return res.json({ success: true });
 	}

@@ -3,6 +3,12 @@
 	margin: 0 auto;
 }
 
+.accept-or-reject {
+	display: flex;
+	justify-content: center;
+	gap: 1rem;
+}
+
 .channel-header {
 	display: flex;
 	gap: 1rem;
@@ -52,6 +58,12 @@
 			}
 		}
 	}
+}
+
+.no-videos {
+	text-align: center;
+
+	opacity: 0.75;
 }
 
 .channel-videos {

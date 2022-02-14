@@ -2,6 +2,11 @@ import * as youtube from './youtube';
 import * as filters from './filter';
 
 import db from './database';
+import EventEmitter from 'events';
+
+// event emitters for websockets
+export const clientChannelListener = new EventEmitter();
+export const acceptedChannelListener = new EventEmitter();
 
 async function parseChannel(channelId: string) {
 	// get channel data
@@ -55,15 +60,20 @@ async function parseChannel(channelId: string) {
 	console.log('parsed all videos');
 }
 
+let parsing = false; // stupid solution todo: better please
 async function parseChannels() {
+	if (parsing) return;
+	parsing = true;
+
 	while (true) {
-		const queuedCount = await db.getQueuedChannelCount();
+		const queuedCount = await db.getWaitingChannelCount();
 		console.log(`parsing new channel... ${queuedCount} channels queued\n`);
 
 		// parse the next channel in the queue
-		const channelId = await db.getQueuedChannel();
+		const channelId = await db.getNextChannel();
 		if (!channelId) {
 			console.log('no more channels queued');
+			parsing = false;
 			return;
 		}
 
@@ -74,10 +84,20 @@ async function parseChannels() {
 		}
 
 		// remove this channel from the queue
-		await db.removeFromQueue(channelId);
+		await db.removeFromAccepted(channelId);
 	}
 
 	// // console.log('downloading video');
 	// // const stream = youtube.downloadVideoStream(video);
 	// // console.log('done');
+}
+
+export async function start() {
+	if (!(await db.channelParsed(process.env.START_CHANNEL))) {
+		await db.queueChannels([process.env.START_CHANNEL]);
+	}
+
+	parseChannels();
+
+	acceptedChannelListener.on('accepted', () => parseChannels());
 }

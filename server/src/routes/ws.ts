@@ -3,8 +3,8 @@ import { query, body } from 'express-validator';
 import validate from '../util/validate';
 import WebSocket from 'ws';
 
-import channelListener from '../archiving/channelListener';
 import db from '../archiving/database';
+import { clientChannelListener } from '../archiving/archive';
 
 const router = express.Router();
 
@@ -15,14 +15,14 @@ router.ws('/channelQueue', async (ws: WebSocket, req: express.Request) => {
 	ws.send(JSON.stringify(channelQueue));
 
 	const listener = (channel: string) => {
-		ws.send(channel);
+		ws.send(JSON.stringify([channel]));
 	};
 
-	channelListener.on('channel', listener);
+	clientChannelListener.on('channel', listener);
 
 	ws.on('close', () => {
 		console.log('websocket closed');
-		channelListener.removeListener('channel', listener);
+		clientChannelListener.removeListener('channel', listener);
 	});
 });
 

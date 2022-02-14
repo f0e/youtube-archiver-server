@@ -1,5 +1,5 @@
-import { Collection, Db, MongoClient, ObjectId, WithId } from 'mongodb';
-import channelListener from './channelListener';
+import { Collection, Db, MongoClient } from 'mongodb';
+import { acceptedChannelListener, clientChannelListener } from './archive';
 
 const updateHistoryArray = (
 	collection: Collection,
@@ -96,7 +96,7 @@ class Database {
 
 			newChannels++;
 			await channelQueue.insertOne({ id: channelId });
-			channelListener.emitNewChannels(channelId);
+			clientChannelListener.emit('channel', channelId);
 		}
 
 		console.log(`${newChannels} new channels queued`);
@@ -104,32 +104,51 @@ class Database {
 
 	removeFromQueue = async (channelId: string) => {
 		const channelQueue = this.db.collection('channelQueue');
-		return await channelQueue.deleteOne({ id: channelId });
+		await channelQueue.deleteOne({ id: channelId });
+	};
+
+	acceptChannel = async (channelId: string) => {
+		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
+		await acceptedChannelQueue.insertOne({ id: channelId });
+
+		// also remove from the queue
+		await this.removeFromQueue(channelId);
+
+		acceptedChannelListener.emit('accepted');
 	};
 
 	filterChannel = async (channelId: string) => {
 		const filteredChannels = this.db.collection('filteredChannels');
-		return await filteredChannels.insertOne({ id: channelId });
+		await filteredChannels.insertOne({ id: channelId });
+
+		// also remove from the queue
+		await this.removeFromQueue(channelId);
 	};
 
-	getQueuedChannel = async () => {
-		const channelQueue = this.db.collection('channelQueue');
+	removeFromAccepted = async (channelId: string) => {
+		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
+		await acceptedChannelQueue.deleteOne({ id: channelId });
+	};
 
-		const firstChannel = await channelQueue.findOne();
+	getNextChannel = async () => {
+		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
+
+		const firstChannel = await acceptedChannelQueue.findOne();
 
 		if (!firstChannel) return null;
 		else return firstChannel.id;
 	};
 
-	getQueuedChannels = async () => {
-		const channelQueue = this.db.collection('channelQueue');
-
-		return await channelQueue.find().toArray();
+	getWaitingChannelCount = async () => {
+		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
+		return await acceptedChannelQueue.countDocuments();
 	};
 
-	getQueuedChannelCount = async () => {
+	getQueuedChannels = async () => {
 		const channelQueue = this.db.collection('channelQueue');
-		return await channelQueue.countDocuments();
+		const queue = await channelQueue.find().toArray();
+		if (queue.length == 0) return [];
+		else return queue.map((channel) => channel.id);
 	};
 
 	channelQueued = async (channelId: string) => {
