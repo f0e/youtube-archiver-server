@@ -37,8 +37,6 @@ router.post(
 	async (req, res) => {
 		const { channelId } = validate(req);
 
-		console.log('accepting channel', channelId);
-
 		await db.acceptChannel(channelId);
 
 		return res.json({ success: true });
@@ -50,8 +48,6 @@ router.post(
 	body('channelId').isString(),
 	async (req, res) => {
 		const { channelId } = validate(req);
-
-		console.log('filtering channel', channelId);
 
 		await db.filterChannel(channelId);
 

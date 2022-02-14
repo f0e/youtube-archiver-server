@@ -55,23 +55,6 @@ const ChannelCard = ({
 					<Loader message="loading channel..." />
 				) : (
 					<>
-						<div className="accept-or-reject">
-							<LoadingButton
-								onClick={() => acceptOrReject(true)}
-								variant="contained"
-								color="primary"
-								label="accept"
-								loading={accepting}
-							/>
-							<LoadingButton
-								onClick={() => acceptOrReject(false)}
-								variant="contained"
-								color="secondary"
-								label="reject"
-								loading={rejecting}
-							/>
-						</div>
-
 						<a href={channel.data.authorUrl}>
 							<div className="channel-header">
 								<img
@@ -80,9 +63,30 @@ const ChannelCard = ({
 									alt={`${channel.data.author}'s avatar`}
 								/>
 								<div className="channel-info">
-									<div className="channel-name">{channel.data.author}</div>
-									<div className="channel-subscriptions">
-										{channel.data.subscriberText}
+									<div className="top-info">
+										<div>
+											<div className="channel-name">{channel.data.author}</div>
+											<div className="channel-subscriptions">
+												{channel.data.subscriberText}
+											</div>
+										</div>
+
+										<div className="accept-or-reject">
+											<LoadingButton
+												onClick={() => acceptOrReject(true)}
+												variant="contained"
+												color="primary"
+												label="accept"
+												loading={accepting}
+											/>
+											<LoadingButton
+												onClick={() => acceptOrReject(false)}
+												variant="contained"
+												color="secondary"
+												label="reject"
+												loading={rejecting}
+											/>
+										</div>
 									</div>
 									<div className="channel-tags">
 										{channel.data.tags &&
@@ -146,7 +150,7 @@ const ChannelQueue = ({
 	onAcceptReject,
 }: ChannelQueueProps): ReactElement => {
 	return (
-		<div>
+		<div className="channels">
 			{channels.map((channel) => (
 				<ChannelCard
 					key={channel.id}
