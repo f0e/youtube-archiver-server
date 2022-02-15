@@ -93,8 +93,9 @@ export function downloadVideo(videoId: string, downloadPath: string) {
 		ytDlpWrap
 			.exec([...downloadOptions, videoUrl, '-o', downloadPath])
 			.on('progress', (progress) => {
-				const percent = Math.floor(progress.percent / 10) * 10;
-				console.log(`${percent}% ${progress.currentSpeed} ${progress.eta}`);
+				console.log(
+					`${progress.percent}% ${progress.currentSpeed} ${progress.eta}`
+				);
 			})
 			// .on('ytDlpEvent', (eventType, eventData) =>
 			// 	console.log(eventType, eventData)

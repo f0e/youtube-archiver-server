@@ -18,22 +18,23 @@ export function getVideoPath(video: any, withExtension: boolean = false) {
 export async function downloadVideo(videoId: string) {
 	const video = await db.getVideo(videoId);
 
-	console.log(
-		`downloading video '${video.data.title}' by ${video.data.uploader}`
-	);
-
 	await youtube.downloadVideo(videoId, getVideoPath(video));
-
-	console.log('done');
 }
 
 export async function downloadAllVideos() {
 	const videos = await db.getVideos();
-	for (const video of videos) {
+
+	for (const [i, video] of videos.entries()) {
 		// check if it's already been downloaded
 		const videoPath = getVideoPath(video, true);
 		if (fs.existsSync(videoPath)) continue;
 
+		console.log(
+			`downloading video '${video.data.title}' by ${video.data.uploader} (${i}/${videos.length})`
+		);
+
 		await downloadVideo(video.id);
+
+		console.log('done');
 	}
 }
