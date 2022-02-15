@@ -74,36 +74,6 @@ router.get(
 	}
 );
 
-router.get(
-	'/check-downloaded',
-	query('videoIds').isArray(),
-	async (req, res) => {
-		const { videoIds } = validate(req);
-
-		const isDownloaded = async (videoId: string) => {
-			const video = await db.getVideo(videoId);
-			if (!video) return false;
-
-			const videoPath = download.getVideoPath(video, true);
-			if (!fs.existsSync(videoPath)) return false;
-
-			return true;
-		};
-
-		const downloadedArray = await Promise.all(
-			videoIds.map((videoId: string) => isDownloaded(videoId))
-		);
-
-		// todo: refactor
-
-		const downloadedMap: { [key: string]: boolean } = {};
-		for (const [i, downloaded] of downloadedArray.entries())
-			downloadedMap[videoIds[i]] = downloaded;
-
-		return res.json(downloadedMap);
-	}
-);
-
 router.get('/get-video-info', query('videoId').isString(), async (req, res) => {
 	const { videoId } = validate(req);
 
@@ -121,9 +91,10 @@ router.get(
 
 		const video = await db.getVideo(videoId);
 		if (!video) throw new Error('video not parsed');
+		if (!video.downloaded) throw new Error('video not downloaded');
 
 		const videoPath = await download.getVideoPath(video, true);
-		if (!fs.existsSync(videoPath)) throw new Error('video not downloaded');
+		if (!fs.existsSync(videoPath)) throw new Error('video deleted');
 
 		// get headers
 		const { size } = fs.statSync(videoPath);

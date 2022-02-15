@@ -35,7 +35,9 @@ const Comment = ({ comment, replies }: CommentProps): ReactElement => {
 				<div className="comment-top">
 					{channelLink(
 						<img
-							className={`channel-avatar${!comment.parsed ? ' unparsed' : ''}`}
+							className={
+								'channel-avatar' + (!comment.parsed ? ' unparsed' : '')
+							}
 							src={comment.data.author_thumbnail}
 							alt={`${comment.data.author.author}'s avatar`}
 						/>
@@ -44,10 +46,11 @@ const Comment = ({ comment, replies }: CommentProps): ReactElement => {
 					<div className="comment-name-and-text">
 						{channelLink(
 							<div
-								className={`channel-name${
-									comment.data.author_is_uploader ? ' uploader' : ''
+								className={
+									'channel-name' +
+									(comment.data.author_is_uploader ? ' uploader' : '') +
+									(!comment.parsed ? ' unparsed' : '')
 								}
-							${!comment.parsed ? ' unparsed' : ''}`}
 							>
 								{comment.data.author}
 							</div>
@@ -129,9 +132,25 @@ const VideoPlayer = ({
 		}
 	}
 
+	const videoRef = useRef<HTMLVideoElement>(null);
+
+	const showVideo = () => {
+		console.log('video loaded');
+
+		if (!videoRef.current) return;
+		videoRef.current.classList.remove('loading-video');
+	};
+
 	return (
 		<div className="video">
-			<video className="video-player" width="100%" controls>
+			<video
+				className="video-player loading-video"
+				style={{ aspectRatio: `${video.data.width} / ${video.data.height}` }}
+				controls
+				onLoadedData={showVideo}
+				ref={videoRef}
+				autoPlay
+			>
 				<source src={`get-video-stream?videoId=${video.id}`} type="video/mp4" />
 			</video>
 
@@ -222,7 +241,7 @@ const Watch = (): ReactElement => {
 	}, []);
 
 	return (
-		<main className="browse-page">
+		<main className="watch-page">
 			{loading ? (
 				<Loader message="loading" />
 			) : !videoInfo ? (

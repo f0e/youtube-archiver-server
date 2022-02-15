@@ -1,16 +1,9 @@
-import React, {
-	ReactElement,
-	useContext,
-	useEffect,
-	useRef,
-	useState,
-} from 'react';
+import React, { ReactElement, useContext, useState } from 'react';
 import { Card, CardContent } from '@mui/material';
 import LoadingButton from '../LoadingButton/LoadingButton';
 import ApiContext from '../../context/ApiContext';
 import Channel from '../../types/channel';
-import useOnScreen from '../../hooks/useOnScreen';
-import { DownloadedVideoCard, VideoCard } from '../VideoCard/VideoCard';
+import { VideoCard } from '../VideoCard/VideoCard';
 import ConditionalLink from '../ConditionalLink/ConditionalLink';
 
 import './ChannelCard.scss';
@@ -29,30 +22,7 @@ export const ChannelCard = ({
 	const [accepting, setAccepting] = useState(false);
 	const [rejecting, setRejecting] = useState(false);
 
-	const [loadedDownloaded, setLoadedDownloaded] = useState(false);
-	const [downloaded, setDownloaded] = useState<{ [key: string]: boolean }>({});
-
 	const Api = useContext(ApiContext);
-
-	const ref = useRef<any>();
-	const onScreen = useOnScreen(ref);
-
-	const getDownloaded = async () => {
-		const downloaded = await Api.get('/check-downloaded', {
-			videoIds: channel.videos.map((video: any) => video.videoId),
-		});
-
-		setDownloaded(downloaded);
-	};
-
-	useEffect(() => {
-		if (parsed) {
-			if (onScreen && !loadedDownloaded) {
-				setLoadedDownloaded(true);
-				getDownloaded();
-			}
-		}
-	}, [onScreen]);
 
 	const acceptOrReject = async (accept: boolean) => {
 		if (accept) setAccepting(true);
@@ -76,81 +46,75 @@ export const ChannelCard = ({
 	);
 
 	return (
-		<div ref={ref}>
-			<Card variant="outlined">
-				<CardContent>
-					<div className="channel-header">
-						{channelLink(
-							<img
-								className="channel-avatar"
-								src={channel.data.authorThumbnails.at(-1).url}
-								alt={`${channel.data.author}'s avatar`}
-							/>
-						)}
+		<Card variant="outlined">
+			<CardContent>
+				<div className="channel-header">
+					{channelLink(
+						<img
+							className="channel-avatar"
+							src={channel.data.authorThumbnails.at(-1).url}
+							alt={`${channel.data.author}'s avatar`}
+						/>
+					)}
 
-						<div className="channel-info">
-							<div className="top-info">
-								<div>
-									{channelLink(
-										<div className="channel-name">{channel.data.author}</div>
-									)}
-
-									<div className="channel-subscriptions">
-										{channel.data.subscriberText}
-									</div>
-								</div>
-
-								{onAcceptReject && (
-									<div className="accept-or-reject">
-										<LoadingButton
-											onClick={(e: any) => acceptOrReject(true)}
-											variant="contained"
-											color="primary"
-											label="accept"
-											loading={accepting}
-										/>
-										<LoadingButton
-											onClick={(e: any) => acceptOrReject(false)}
-											variant="contained"
-											color="secondary"
-											label="reject"
-											loading={rejecting}
-										/>
-									</div>
+					<div className="channel-info">
+						<div className="top-info">
+							<div>
+								{channelLink(
+									<div className="channel-name">{channel.data.author}</div>
 								)}
-							</div>
-							<div className="channel-tags">
-								{channel.data.tags &&
-									channel.data.tags.map((tag: string, i: number) => (
-										<div key={`tag-${i}`} className="channel-tag">
-											{tag}
-										</div>
-									))}
-							</div>
-						</div>
-					</div>
 
-					<p>{channel.data.description}</p>
+								<div className="channel-subscriptions">
+									{channel.data.subscriberText}
+								</div>
+							</div>
 
-					{channel.videos.length == 0 ? (
-						<div className="no-videos">no videos</div>
-					) : (
-						<div className="channel-videos">
-							{channel.videos.map((video: any) =>
-								parsed ? (
-									<DownloadedVideoCard
-										key={video.videoId}
-										basicVideo={video}
-										downloaded={downloaded[video.videoId]}
+							{onAcceptReject && (
+								<div className="accept-or-reject">
+									<LoadingButton
+										onClick={(e: any) => acceptOrReject(true)}
+										variant="contained"
+										color="primary"
+										label="accept"
+										loading={accepting}
 									/>
-								) : (
-									<VideoCard key={video.videoId} basicVideo={video} />
-								)
+									<LoadingButton
+										onClick={(e: any) => acceptOrReject(false)}
+										variant="contained"
+										color="secondary"
+										label="reject"
+										loading={rejecting}
+									/>
+								</div>
 							)}
 						</div>
-					)}
-				</CardContent>
-			</Card>
-		</div>
+						<div className="channel-tags">
+							{channel.data.tags &&
+								channel.data.tags.map((tag: string, i: number) => (
+									<div key={`tag-${i}`} className="channel-tag">
+										{tag}
+									</div>
+								))}
+						</div>
+					</div>
+				</div>
+
+				<p>{channel.data.description}</p>
+
+				{channel.videos.length == 0 ? (
+					<div className="no-videos">no videos</div>
+				) : (
+					<div className="channel-videos">
+						{channel.videos.map((video: any) => (
+							<VideoCard
+								key={video.videoId}
+								basicVideo={video}
+								fadeNotDownloaded={parsed}
+							/>
+						))}
+					</div>
+				)}
+			</CardContent>
+		</Card>
 	);
 };

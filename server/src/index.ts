@@ -50,6 +50,7 @@ async function start() {
 		});
 
 	archive.start();
+
 	download.downloadAllVideos();
 }
 

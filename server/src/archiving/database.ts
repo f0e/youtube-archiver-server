@@ -1,7 +1,10 @@
+import fs from 'fs-extra';
+
 import { Collection, Db, MongoClient } from 'mongodb';
 import { acceptedChannelListener, clientQueueListener } from './archive';
+import { getVideoPath } from '../downloading/download';
 
-const updateHistoryArray = (
+const updateHistoryArray = async (
 	collection: Collection,
 	document: any,
 	id: string,
@@ -16,7 +19,7 @@ const updateHistoryArray = (
 	) {
 		const updateQuery = { $set: {} };
 		(updateQuery.$set as any)[field] = array.concat(value); // bit poo
-		collection.updateOne({ id }, updateQuery);
+		await collection.updateOne({ id }, updateQuery);
 
 		console.log(`updated ${field} array (${array}), added ${value}`);
 	}
@@ -46,8 +49,8 @@ class Database {
 	// 			`channel '${name}' already exists, updating names and avatars`
 	// 		);
 
-	// 		updateHistoryArray(channels, channel, channelId, 'names', name);
-	// 		updateHistoryArray(channels, channel, channelId, 'avatars', avatar);
+	// 		await updateHistoryArray(channels, channel, channelId, 'names', name);
+	// 		await updateHistoryArray(channels, channel, channelId, 'avatars', avatar);
 	// 	} else {
 	// 		await channels.insertOne({
 	// 			id: channelId,
@@ -71,7 +74,7 @@ class Database {
 				`channel '${title}' already exists, updating names and avatars`
 			);
 
-			updateHistoryArray(videos, video, videoId, 'titles', title);
+			await updateHistoryArray(videos, video, videoId, 'titles', title);
 		} else {
 			await videos.insertOne({
 				id: videoId,
@@ -79,6 +82,34 @@ class Database {
 				data: videoData,
 			});
 		}
+	};
+
+	updateVideoDownloaded = async (videoId: string) => {
+		const video = await this.getVideo(videoId);
+		const videoPath = getVideoPath(video, true);
+		const downloaded = fs.existsSync(videoPath);
+
+		// update in videos
+		const videos = this.db.collection('videos');
+		await videos.updateOne(
+			{ id: videoId },
+			{
+				$set: {
+					downloaded,
+				},
+			}
+		);
+
+		// also update in channel videos
+		const channels = this.db.collection('channels');
+		await channels.updateOne(
+			{ 'videos.videoId': videoId },
+			{
+				$set: {
+					'videos.$.downloaded': downloaded,
+				},
+			}
+		);
 	};
 
 	queueChannel = async (channelId: string, channelData: any, videos: any) => {

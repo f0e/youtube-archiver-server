@@ -1,5 +1,5 @@
 .watch-page {
-	max-width: 60rem;
+	max-width: 80rem;
 	margin: 0 auto;
 }
 
@@ -12,7 +12,14 @@
 
 .video {
 	.video-player {
+		width: 100%;
 		outline: none;
+
+		transition: opacity 0.15s;
+
+		&.loading-video {
+			opacity: 0;
+		}
 	}
 
 	.video-info {
