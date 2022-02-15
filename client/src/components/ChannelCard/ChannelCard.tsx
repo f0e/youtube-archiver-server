@@ -6,13 +6,14 @@ import React, {
 	useState,
 } from 'react';
 import { Card, CardContent } from '@mui/material';
-import LoadingButton from '../../components/LoadingButton/LoadingButton';
+import LoadingButton from '../LoadingButton/LoadingButton';
 import ApiContext from '../../context/ApiContext';
 import Channel from '../../types/channel';
 import useOnScreen from '../../hooks/useOnScreen';
 import { DownloadedVideoCard, VideoCard } from '../VideoCard/VideoCard';
+import ConditionalLink from '../ConditionalLink/ConditionalLink';
 
-import './Channel.scss';
+import './ChannelCard.scss';
 
 interface ChannelCardProps {
 	channel: Channel;
@@ -34,7 +35,6 @@ export const ChannelCard = ({
 	const Api = useContext(ApiContext);
 
 	const ref = useRef<any>();
-
 	const onScreen = useOnScreen(ref);
 
 	const getDownloaded = async () => {
@@ -69,25 +69,32 @@ export const ChannelCard = ({
 		onAcceptReject && onAcceptReject(channel.id, accept);
 	};
 
+	const channelLink = (children: any) => (
+		<ConditionalLink to={`/channel/${channel.id}`} condition={parsed}>
+			{children}
+		</ConditionalLink>
+	);
+
 	return (
 		<div ref={ref}>
 			<Card variant="outlined">
 				<CardContent>
 					<div className="channel-header">
-						<a href={channel.data.authorUrl}>
+						{channelLink(
 							<img
 								className="channel-avatar"
 								src={channel.data.authorThumbnails.at(-1).url}
 								alt={`${channel.data.author}'s avatar`}
 							/>
-						</a>
+						)}
 
 						<div className="channel-info">
 							<div className="top-info">
 								<div>
-									<a href={channel.data.authorUrl}>
+									{channelLink(
 										<div className="channel-name">{channel.data.author}</div>
-									</a>
+									)}
+
 									<div className="channel-subscriptions">
 										{channel.data.subscriberText}
 									</div>

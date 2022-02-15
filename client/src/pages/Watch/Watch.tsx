@@ -1,8 +1,15 @@
-import React, { ReactElement, useContext, useEffect, useState } from 'react';
+import React, {
+	ReactElement,
+	useContext,
+	useEffect,
+	useRef,
+	useState,
+} from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import ConditionalLink from '../../components/ConditionalLink/ConditionalLink';
 import Loader from '../../components/Loader/Loader';
 import ApiContext from '../../context/ApiContext';
+import useOnScreen from '../../hooks/useOnScreen';
 import Channel from '../../types/channel';
 import Video from '../../types/video';
 
@@ -20,7 +27,11 @@ interface CommentProps {
 }
 
 const Comment = ({ comment, isReply, replies }: CommentProps): ReactElement => {
+	const [loadedParsed, setLoadedParsed] = useState(false);
 	const [commenterParsed, setCommenterParsed] = useState(false);
+
+	const ref = useRef<any>();
+	const onScreen = useOnScreen(ref);
 
 	const Api = useContext(ApiContext);
 
@@ -33,8 +44,11 @@ const Comment = ({ comment, isReply, replies }: CommentProps): ReactElement => {
 	};
 
 	useEffect(() => {
-		getCommenterParsed();
-	}, []);
+		if (onScreen && !commenterParsed) {
+			setLoadedParsed(true);
+			getCommenterParsed();
+		}
+	}, [onScreen]);
 
 	const channelLink = (children: any) => (
 		<ConditionalLink
@@ -46,7 +60,7 @@ const Comment = ({ comment, isReply, replies }: CommentProps): ReactElement => {
 	);
 
 	return (
-		<div key={comment.id} className="comment">
+		<div key={comment.id} ref={ref} className="comment">
 			<div className="comment-main">
 				<div className="comment-top">
 					{channelLink(
@@ -146,7 +160,9 @@ const VideoPlayer = ({ video, channel }: VideoProps): ReactElement => {
 				</div>
 
 				<div className="likes">
-					<span className="like-number">{video.data.like_count}</span>
+					<span className="like-number">
+						{video.data.like_count ? video.data.like_count : 0}
+					</span>
 					<span> likes</span>
 				</div>
 			</div>
@@ -181,7 +197,11 @@ const VideoPlayer = ({ video, channel }: VideoProps): ReactElement => {
 
 			<div className="comments">
 				{comments.map((comment) => (
-					<Comment comment={comment.data} replies={comment.replies} />
+					<Comment
+						key={comment.data.id}
+						comment={comment.data}
+						replies={comment.replies}
+					/>
 				))}
 			</div>
 		</div>

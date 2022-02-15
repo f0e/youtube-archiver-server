@@ -1,5 +1,5 @@
 import React, { ReactElement, useContext, useEffect, useState } from 'react';
-import { ChannelCard } from '../../components/Channel/Channel';
+import { ChannelCard } from '../../components/ChannelCard/ChannelCard';
 import ApiContext from '../../context/ApiContext';
 import Channel from '../../types/channel';
 

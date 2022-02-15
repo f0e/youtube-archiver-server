@@ -1,6 +1,6 @@
 import React, { ReactElement, useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { ChannelCard } from '../../components/Channel/Channel';
+import { ChannelCard } from '../../components/ChannelCard/ChannelCard';
 import Loader from '../../components/Loader/Loader';
 import ApiContext from '../../context/ApiContext';
 import Channel from '../../types/channel';

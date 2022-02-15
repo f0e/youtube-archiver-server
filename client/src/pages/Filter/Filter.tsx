@@ -1,5 +1,5 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
-import { ChannelCard } from '../../components/Channel/Channel';
+import { ChannelCard } from '../../components/ChannelCard/ChannelCard';
 import Channel from '../../types/channel';
 
 import './Filter.scss';
