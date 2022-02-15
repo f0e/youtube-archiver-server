@@ -2,3 +2,9 @@
 	max-width: 60rem;
 	margin: 0 auto;
 }
+
+.links {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}

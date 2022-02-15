@@ -3,7 +3,9 @@ const ytch = require('yt-channel-info');
 
 const ytDlpWrap = new YtDlpWrap();
 
-const videoOptions = [
+export const remuxFormat = 'mp4';
+
+const downloadOptions = [
 	// don't redownload videos
 	'--no-overwrites',
 	'--no-post-overwrites',
@@ -33,7 +35,7 @@ const videoOptions = [
 
 	// convert to mp4
 	'--remux-video',
-	'mp4',
+	remuxFormat,
 ];
 
 export async function parseVideo(videoId: string) {
@@ -84,6 +86,25 @@ export async function getVideos(channelId: string) {
 	return videos;
 }
 
-export function downloadVideoStream(video: string) {
-	return ytDlpWrap.execStream([...videoOptions, video]);
+export function downloadVideo(videoId: string, downloadPath: string) {
+	const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+	return new Promise((resolve, reject) => {
+		ytDlpWrap
+			.exec([...downloadOptions, videoUrl, '-o', downloadPath])
+			.on('progress', (progress) => {
+				const percent = Math.floor(progress.percent / 10) * 10;
+				console.log(`${percent}% ${progress.currentSpeed} ${progress.eta}`);
+			})
+			// .on('ytDlpEvent', (eventType, eventData) =>
+			// 	console.log(eventType, eventData)
+			// )
+			.on('error', reject)
+			.on('close', resolve);
+	});
+}
+
+export function downloadVideoStream(videoId: string) {
+	const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+	return ytDlpWrap.execStream([...downloadOptions, videoUrl]);
 }

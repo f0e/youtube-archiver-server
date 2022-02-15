@@ -151,8 +151,30 @@ class Database {
 	getQueuedChannels = async () => {
 		const channelQueue = this.db.collection('channelQueue');
 		const queue = await channelQueue.find().toArray();
+		// todo: can i remove this
 		if (queue.length == 0) return [];
 		else return queue;
+	};
+
+	getChannels = async () => {
+		const channels = this.db.collection('channels');
+		const queue = await channels.find().toArray();
+		return queue;
+	};
+
+	getChannel = async (channelId: string) => {
+		const channels = this.db.collection('channels');
+		return await channels.findOne({ id: channelId });
+	};
+
+	getVideo = async (videoId: string) => {
+		const videos = this.db.collection('videos');
+		return await videos.findOne({ id: videoId });
+	};
+
+	getVideos = async () => {
+		const videos = this.db.collection('videos');
+		return await videos.find().toArray();
 	};
 
 	isChannelQueued = async (channelId: string) => {
@@ -166,13 +188,11 @@ class Database {
 	};
 
 	isChannelParsed = async (channelId: string) => {
-		const channels = this.db.collection('channels');
-		return await channels.findOne({ id: channelId });
+		return this.getChannel(channelId) != null;
 	};
 
 	isVideoParsed = async (videoId: string) => {
-		const videos = this.db.collection('videos');
-		return await videos.findOne({ id: videoId });
+		return this.getVideo(videoId) != null;
 	};
 }
 

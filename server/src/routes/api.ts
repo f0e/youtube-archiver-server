@@ -3,6 +3,8 @@ import { query, body } from 'express-validator';
 import validate from '../util/validate';
 
 import * as youtube from '../archiving/youtube';
+import * as connections from '../graphing/connections';
+
 import db from '../archiving/database';
 
 const router = express.Router();
@@ -30,5 +32,17 @@ router.post(
 		return res.json({ success: true });
 	}
 );
+
+router.get('/get-channels', async (req, res) => {
+	const channels = await db.getChannels();
+
+	return res.json(channels);
+});
+
+router.get('/get-connections', async (req, res) => {
+	const { relations, channelNames } = await connections.getRelations();
+
+	return res.json({ relations, channelNames });
+});
 
 export default router;

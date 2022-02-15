@@ -9,7 +9,10 @@ import morgan from 'morgan';
 import enableWs from 'express-ws';
 
 import db from './archiving/database';
+
 import * as archive from './archiving/archive';
+import * as connections from './graphing/connections';
+import * as download from './downloading/download';
 
 // setup
 const appBase = express();
@@ -39,6 +42,9 @@ async function start() {
 
 	await db.connect();
 	await archive.start();
+
+	// await connections.run();
+	await download.downloadAllVideos();
 
 	await app
 		.listen(port, () => {

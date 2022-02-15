@@ -7,6 +7,8 @@ import Navbar from './components/Navbar/Navbar';
 import MessageBar from './components/MessageBar/MessageBar';
 import Home from './pages/Home/Home';
 import Filter from './pages/Filter/Filter';
+import Connections from './pages/Connections/Connections';
+import Browse from './pages/Browse/Browse';
 
 import './styles/variables.scss';
 import './App.scss';
@@ -23,6 +25,8 @@ const App = (): ReactElement => {
 							<Routes>
 								<Route path="/" element={<Home />} />
 								<Route path="/filter" element={<Filter />} />
+								<Route path="/connections" element={<Connections />} />
+								<Route path="/browse" element={<Browse />} />
 							</Routes>
 
 							<MessageBar />

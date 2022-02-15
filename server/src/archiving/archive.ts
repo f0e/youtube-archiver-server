@@ -101,10 +101,6 @@ async function parseChannels() {
 		// remove this channel from the queue
 		await db.removeFromAccepted(channel.id);
 	}
-
-	// // console.log('downloading video');
-	// // const stream = youtube.downloadVideoStream(video);
-	// // console.log('done');
 }
 
 export async function start() {
