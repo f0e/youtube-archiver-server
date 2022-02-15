@@ -50,6 +50,31 @@ router.get('/get-channels', async (req, res) => {
 });
 
 router.get(
+	'/check-channels-parsed',
+	query('channelIds').isArray(),
+	async (req, res) => {
+		const { channelIds } = validate(req);
+
+		const isParsed = async (channelId: string) => {
+			const channel = await db.getChannel(channelId);
+			return channel != null;
+		};
+
+		const parsedArray = await Promise.all(
+			channelIds.map((channelId: string) => isParsed(channelId))
+		);
+
+		// todo: refactor
+
+		const parsedMap: { [key: string]: boolean } = {};
+		for (const [i, downloaded] of parsedArray.entries())
+			parsedMap[channelIds[i]] = downloaded;
+
+		return res.json(parsedMap);
+	}
+);
+
+router.get(
 	'/check-downloaded',
 	query('videoIds').isArray(),
 	async (req, res) => {
@@ -68,6 +93,8 @@ router.get(
 		const downloadedArray = await Promise.all(
 			videoIds.map((videoId: string) => isDownloaded(videoId))
 		);
+
+		// todo: refactor
 
 		const downloadedMap: { [key: string]: boolean } = {};
 		for (const [i, downloaded] of downloadedArray.entries())

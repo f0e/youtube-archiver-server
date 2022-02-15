@@ -9,65 +9,35 @@ import { Link, useSearchParams } from 'react-router-dom';
 import ConditionalLink from '../../components/ConditionalLink/ConditionalLink';
 import Loader from '../../components/Loader/Loader';
 import ApiContext from '../../context/ApiContext';
-import useOnScreen from '../../hooks/useOnScreen';
 import Channel from '../../types/channel';
 import Video from '../../types/video';
 
 import './Watch.scss';
 
-interface VideoProps {
-	video: Video;
-	channel: Channel;
-}
-
 interface CommentProps {
 	comment: any;
-	isReply?: boolean;
 	replies?: any[];
 }
 
-const Comment = ({ comment, isReply, replies }: CommentProps): ReactElement => {
-	const [loadedParsed, setLoadedParsed] = useState(false);
-	const [commenterParsed, setCommenterParsed] = useState(false);
-
-	const ref = useRef<any>();
-	const onScreen = useOnScreen(ref);
-
-	const Api = useContext(ApiContext);
-
-	const getCommenterParsed = async () => {
-		const channel = await Api.get('get-channel', {
-			channelId: comment.author_id,
-		});
-
-		setCommenterParsed(channel != null);
-	};
-
-	useEffect(() => {
-		if (onScreen && !commenterParsed) {
-			setLoadedParsed(true);
-			getCommenterParsed();
-		}
-	}, [onScreen]);
-
+const Comment = ({ comment, replies }: CommentProps): ReactElement => {
 	const channelLink = (children: any) => (
 		<ConditionalLink
-			to={`/channel/${comment.author_id}`}
-			condition={commenterParsed}
+			to={`/channel/${comment.data.author_id}`}
+			condition={comment.parsed}
 		>
 			{children}
 		</ConditionalLink>
 	);
 
 	return (
-		<div key={comment.id} ref={ref} className="comment">
+		<div key={comment.data.id} className="comment">
 			<div className="comment-main">
 				<div className="comment-top">
 					{channelLink(
 						<img
-							className={`channel-avatar${!commenterParsed ? ' unparsed' : ''}`}
-							src={comment.author_thumbnail}
-							alt={`${comment.author.author}'s avatar`}
+							className={`channel-avatar${!comment.parsed ? ' unparsed' : ''}`}
+							src={comment.data.author_thumbnail}
+							alt={`${comment.data.author.author}'s avatar`}
 						/>
 					)}
 
@@ -75,30 +45,30 @@ const Comment = ({ comment, isReply, replies }: CommentProps): ReactElement => {
 						{channelLink(
 							<div
 								className={`channel-name${
-									comment.author_is_uploader ? ' uploader' : ''
+									comment.data.author_is_uploader ? ' uploader' : ''
 								}
-							${!commenterParsed ? ' unparsed' : ''}`}
+							${!comment.parsed ? ' unparsed' : ''}`}
 							>
-								{comment.author}
+								{comment.data.author}
 							</div>
 						)}
 
-						<div className="comment-text">{comment.text}</div>
+						<div className="comment-text">{comment.data.text}</div>
 					</div>
 				</div>
 
-				{(comment.like_count > 0 || comment.is_favorited) && (
+				{(comment.data.like_count > 0 || comment.data.is_favorited) && (
 					<div className="comment-bottom">
-						{comment.like_count > 0 && (
+						{comment.data.like_count > 0 && (
 							<div className="comment-likes">
 								<span className="comment-like-number">
-									{comment.like_count}
+									{comment.data.like_count}
 								</span>
 								<span> likes</span>
 							</div>
 						)}
 
-						{comment.is_favorited && (
+						{comment.data.is_favorited && (
 							<div className="favourited">favourited</div>
 						)}
 					</div>
@@ -108,7 +78,7 @@ const Comment = ({ comment, isReply, replies }: CommentProps): ReactElement => {
 			{replies && replies.length > 0 && (
 				<div className="comment-replies">
 					{replies.map((reply) => (
-						<Comment key={reply.id} comment={reply} isReply={true} />
+						<Comment key={reply.data.id} comment={reply} />
 					))}
 				</div>
 			)}
@@ -116,28 +86,43 @@ const Comment = ({ comment, isReply, replies }: CommentProps): ReactElement => {
 	);
 };
 
-const VideoPlayer = ({ video, channel }: VideoProps): ReactElement => {
+interface VideoPlayerProps {
+	video: Video;
+	channel: Channel;
+	parsedCommenters: { [key: string]: boolean };
+}
+
+const VideoPlayer = ({
+	video,
+	channel,
+	parsedCommenters,
+}: VideoPlayerProps): ReactElement => {
 	const basicVideo = channel.videos.find(
 		(basicVideo: any) => basicVideo.videoId == video.id
 	);
 
+	const commentsWithParsed = video.data.comments.map((comment: any) => ({
+		data: comment,
+		parsed: parsedCommenters[comment.author_id],
+	}));
+
 	const comments: any[] = [];
 
 	// add root comments
-	for (const comment of video.data.comments) {
-		if (comment.parent == 'root') {
+	for (const comment of commentsWithParsed) {
+		if (comment.data.parent == 'root') {
 			comments.push({
-				data: comment,
+				comment: comment,
 				replies: [],
 			});
 		}
 	}
 
 	// add replies
-	for (const comment of video.data.comments) {
-		if (comment.parent != 'root') {
+	for (const comment of commentsWithParsed) {
+		if (comment.data.parent != 'root') {
 			const parentComment = comments.find(
-				(parentComment) => parentComment.data.id == comment.parent
+				(parentComment) => parentComment.comment.data.id == comment.data.parent
 			);
 
 			parentComment.replies.push(comment);
@@ -198,8 +183,8 @@ const VideoPlayer = ({ video, channel }: VideoProps): ReactElement => {
 			<div className="comments">
 				{comments.map((comment) => (
 					<Comment
-						key={comment.data.id}
-						comment={comment.data}
+						key={comment.comment.data.id}
+						comment={comment.comment}
 						replies={comment.replies}
 					/>
 				))}
@@ -224,7 +209,11 @@ const Watch = (): ReactElement => {
 			videoId,
 		});
 
-		setVideoInfo({ video, channel });
+		const parsedCommenters = await Api.get('check-channels-parsed', {
+			channelIds: video.data.comments.map((comment: any) => comment.author_id),
+		});
+
+		setVideoInfo({ video, channel, parsedCommenters });
 		setLoading(false);
 	};
 
@@ -239,7 +228,11 @@ const Watch = (): ReactElement => {
 			) : !videoInfo ? (
 				<div>failed to load video</div>
 			) : (
-				<VideoPlayer video={videoInfo.video} channel={videoInfo.channel} />
+				<VideoPlayer
+					video={videoInfo.video}
+					channel={videoInfo.channel}
+					parsedCommenters={videoInfo.parsedCommenters}
+				/>
 			)}
 		</main>
 	);
