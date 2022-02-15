@@ -72,49 +72,4 @@
 	display: grid;
 	gap: 0.7rem;
 	grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-
-	.video {
-		border: 1px solid var(--card-border);
-		border-radius: 0.25rem;
-		background-color: var(--card-background);
-
-		.video-thumbnail {
-			position: relative;
-
-			img {
-				width: 100%;
-				object-fit: contain;
-			}
-
-			.video-duration {
-				position: absolute;
-
-				bottom: 0.5rem;
-				right: 0.5rem;
-
-				font-size: 0.8em;
-
-				background-color: rgba(0, 0, 0, 0.95);
-				padding: 0.1rem 0.2rem;
-
-				border-radius: 0.2em;
-
-				user-select: none;
-			}
-		}
-
-		.video-details {
-			padding: 1rem;
-			padding-top: 0.7rem;
-
-			.video-title {
-				margin-bottom: 0.15rem;
-			}
-
-			.views-and-date {
-				font-size: 0.9em;
-				opacity: 0.75;
-			}
-		}
-	}
 }

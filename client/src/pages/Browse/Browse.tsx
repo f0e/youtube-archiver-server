@@ -26,7 +26,7 @@ const Browse = (): ReactElement => {
 
 			<div className="channels">
 				{channels.map((channel) => (
-					<ChannelCard key={channel.id} channel={channel} />
+					<ChannelCard key={channel.id} parsed={true} channel={channel} />
 				))}
 			</div>
 		</main>

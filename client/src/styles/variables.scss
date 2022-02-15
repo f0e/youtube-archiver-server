@@ -16,19 +16,19 @@
 :root[data-theme='theme-light'] {
 	--background-colour: #fff;
 	--text-colour: #000;
-	--text-color-low-opacity: rgba(0, 0, 0, 0.3);
 
 	--card-background: rgb(252, 252, 252);
 	--card-border: rgb(214, 214, 214);
-	--card-text-colour: #000;
+	--card-highlight: rgb(136, 136, 136);
+	--card-highlight-text-colour: #fff;
 }
 
 :root[data-theme='theme-dark'] {
 	--background-colour: #000;
 	--text-colour: #fff;
-	--text-color-low-opacity: rgba(255, 255, 255, 0.3);
 
 	--card-background: rgb(32, 32, 32);
 	--card-border: rgb(54, 54, 54);
-	--card-text-colour: #000;
+	--card-highlight: rgb(77, 77, 77);
+	--card-highlight-text-colour: #fff;
 }

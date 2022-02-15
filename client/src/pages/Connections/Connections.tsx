@@ -8,7 +8,7 @@ const Connections = (): ReactElement => {
 	const Api = useContext(ApiContext);
 
 	useEffect(() => {
-		Api.get('get-connections').then((data) => {
+		Api.get('/get-connections').then((data) => {
 			const getChannelIndex = (channelId: string) =>
 				Object.keys(data.channelNames).findIndex((id) => channelId == id);
 

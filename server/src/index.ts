@@ -38,21 +38,19 @@ app.use('/', apiRouter);
 app.use('/ws/', wsRouter);
 
 async function start() {
-	const port = process.env.PORT;
-
 	await db.connect();
-	await archive.start();
 
-	// await connections.run();
-	await download.downloadAllVideos();
-
-	await app
+	const port = process.env.PORT;
+	app
 		.listen(port, () => {
 			console.log(`app started on port ${port}\n`);
 		})
 		.on('error', (e) => {
 			console.log(`fatal error: ${e.message}`);
 		});
+
+	archive.start();
+	download.downloadAllVideos();
 }
 
 start();

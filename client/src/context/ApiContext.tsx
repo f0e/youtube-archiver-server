@@ -1,5 +1,5 @@
 import React, { createContext, FunctionComponent, useContext } from 'react';
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import MessageContext from './MessageContext';
 
 type ApiCallParameters = {
@@ -7,8 +7,17 @@ type ApiCallParameters = {
 };
 
 export interface ApiContextInterface {
-	get: (url: string, parameters?: ApiCallParameters) => Promise<any>;
-	post: (url: string, body?: ApiCallParameters) => Promise<any>;
+	get: (
+		url: string,
+		parameters?: ApiCallParameters,
+		options?: AxiosRequestConfig<any>
+	) => Promise<any>;
+
+	post: (
+		url: string,
+		body?: ApiCallParameters,
+		options?: AxiosRequestConfig<any>
+	) => Promise<any>;
 }
 
 const ApiContext = createContext({} as ApiContextInterface);
@@ -18,11 +27,13 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 
 	const get = async (
 		url: string,
-		parameters?: ApiCallParameters
+		parameters?: ApiCallParameters,
+		options?: AxiosRequestConfig<any>
 	): Promise<any> => {
 		try {
 			const res = await axios.get(url, {
 				params: parameters,
+				...options,
 			});
 
 			return res.data;
@@ -41,10 +52,11 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 
 	const post = async (
 		url: string,
-		parameters?: ApiCallParameters
+		parameters?: ApiCallParameters,
+		options?: AxiosRequestConfig<any>
 	): Promise<any> => {
 		try {
-			const res = await axios.post(url, parameters);
+			const res = await axios.post(url, parameters, options);
 
 			return res.data.data;
 		} catch (e: any) {

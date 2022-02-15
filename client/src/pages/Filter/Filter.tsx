@@ -19,7 +19,7 @@ const Filter = (): ReactElement => {
 
 		ws.current.onmessage = async (e: MessageEvent) => {
 			const message: any = JSON.parse(e.data);
-			console.log(message);
+
 			switch (message.type) {
 				case 'channels': {
 					setChannels((cur) => cur.concat(message.data));
@@ -69,6 +69,7 @@ const Filter = (): ReactElement => {
 				{channels.map((channel) => (
 					<ChannelCard
 						key={channel.id}
+						parsed={false}
 						channel={channel}
 						onAcceptReject={onAcceptReject}
 					/>

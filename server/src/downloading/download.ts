@@ -5,11 +5,9 @@ import db from '../archiving/database';
 
 import * as youtube from '../archiving/youtube';
 
-const DOWNLOAD_PATH = path.join(__dirname, '../../../downloads');
-
 export function getVideoPath(video: any, withExtension: boolean = false) {
 	return path.join(
-		DOWNLOAD_PATH,
+		process.env.DOWNLOAD_FOLDER,
 		video.data.channel_id,
 		withExtension ? `${video.id}.${youtube.remuxFormat}` : video.id
 	);
@@ -33,7 +31,11 @@ export async function downloadAllVideos() {
 			`downloading video '${video.data.title}' by ${video.data.uploader} (${i}/${videos.length})`
 		);
 
-		await downloadVideo(video.id);
+		try {
+			await downloadVideo(video.id);
+		} catch (e) {
+			console.log('failed to download', e);
+		}
 
 		console.log('done');
 	}

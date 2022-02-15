@@ -9,6 +9,8 @@ import Home from './pages/Home/Home';
 import Filter from './pages/Filter/Filter';
 import Connections from './pages/Connections/Connections';
 import Browse from './pages/Browse/Browse';
+import Watch from './pages/Watch/Watch';
+import ChannelPage from './pages/ChannelPage/ChannelPage';
 
 import './styles/variables.scss';
 import './App.scss';
@@ -27,6 +29,8 @@ const App = (): ReactElement => {
 								<Route path="/filter" element={<Filter />} />
 								<Route path="/connections" element={<Connections />} />
 								<Route path="/browse" element={<Browse />} />
+								<Route path="/channel/:channelId" element={<ChannelPage />} />
+								<Route path="/watch" element={<Watch />} />
 							</Routes>
 
 							<MessageBar />
