@@ -78,7 +78,7 @@ router.get('/get-video-info', query('videoId').isString(), async (req, res) => {
 	const { videoId } = validate(req);
 
 	const video = await db.getVideo(videoId);
-	const channel = await db.getChannel(video.data.uploader_id);
+	const channel = await db.getChannel(video.data.channel_id);
 
 	return res.json({ video, channel });
 });

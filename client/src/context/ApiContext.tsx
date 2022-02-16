@@ -2,12 +2,25 @@ import React, { createContext, FunctionComponent, useContext } from 'react';
 import { useNotifications } from '@mantine/notifications';
 import axios, { AxiosRequestConfig } from 'axios';
 
+export class ApiState {
+	data: any = null;
+	loading: boolean = true;
+	error: Error | null = null;
+}
+
 type ApiCallParameters = {
 	[key: string]: any;
 };
 
 export interface ApiContextInterface {
 	get: (
+		url: string,
+		parameters?: ApiCallParameters,
+		options?: AxiosRequestConfig<any>
+	) => Promise<any>;
+
+	getState: (
+		set: React.Dispatch<React.SetStateAction<any>>,
 		url: string,
 		parameters?: ApiCallParameters,
 		options?: AxiosRequestConfig<any>
@@ -56,6 +69,29 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 		}
 	};
 
+	const getState = async (
+		set: React.Dispatch<React.SetStateAction<any>>,
+		url: string,
+		parameters?: ApiCallParameters,
+		options?: AxiosRequestConfig<any>
+	): Promise<any> => {
+		return await get(url, parameters, options)
+			.then((data) =>
+				set((cur: any) => ({
+					...cur,
+					data,
+					loading: false,
+				}))
+			)
+			.catch((error) =>
+				set((cur: any) => ({
+					...cur,
+					error,
+					loading: false,
+				}))
+			);
+	};
+
 	const post = async (
 		url: string,
 		parameters?: ApiCallParameters,
@@ -75,7 +111,9 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 	};
 
 	return (
-		<ApiContext.Provider value={{ get, post }}>{children}</ApiContext.Provider>
+		<ApiContext.Provider value={{ get, getState, post }}>
+			{children}
+		</ApiContext.Provider>
 	);
 };
 

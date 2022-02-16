@@ -9,7 +9,7 @@ import React, {
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import ConditionalLink from '../../components/ConditionalLink/ConditionalLink';
 import Loader from '../../components/Loader/Loader';
-import ApiContext from '../../context/ApiContext';
+import ApiContext, { ApiState } from '../../context/ApiContext';
 import Channel from '../../types/channel';
 import Video from '../../types/video';
 
@@ -90,54 +90,90 @@ const Comment = ({ comment, replies }: CommentProps): ReactElement => {
 	);
 };
 
+interface VideoCommentsProps {
+	comments: any[];
+}
+
+const VideoComments = ({ comments }: VideoCommentsProps): ReactElement => {
+	const [parsedCommenters, setParsedCommenters] = useState(new ApiState());
+
+	const Api = useContext(ApiContext);
+
+	useEffect(() => {
+		Api.getState(setParsedCommenters, 'check-channels-parsed', {
+			channelIds: comments.map((comment) => comment.author_id),
+		});
+	}, [comments]);
+
+	const fixComments = (comments: any) => {
+		// store which channels are parsed
+		comments = comments.map((comment: any) => ({
+			data: comment,
+			parsed: parsedCommenters.data && parsedCommenters.data[comment.author_id],
+		}));
+
+		// fix replies
+		const fixedComments = [];
+
+		// add root comments
+		for (const comment of comments) {
+			if (comment.data.parent == 'root') {
+				fixedComments.push({
+					comment,
+					replies: [],
+				});
+			}
+		}
+
+		// add replies
+		for (const comment of comments) {
+			if (comment.data.parent != 'root') {
+				const parentComment: any = fixedComments.find(
+					(parentComment) =>
+						parentComment.comment.data.id == comment.data.parent
+				);
+
+				if (parentComment) {
+					parentComment.replies.push(comment);
+				}
+			}
+		}
+
+		return fixedComments;
+	};
+
+	return (
+		<div className="comments">
+			{parsedCommenters.loading ? (
+				<Loader message="loading comments" />
+			) : parsedCommenters.error ? (
+				<h2>failed to load comments</h2>
+			) : (
+				fixComments(comments).map((comment: any) => (
+					<Comment
+						key={comment.comment.data.id}
+						comment={comment.comment}
+						replies={comment.replies}
+					/>
+				))
+			)}
+		</div>
+	);
+};
+
 interface VideoPlayerProps {
 	video: Video;
 	channel: Channel;
-	parsedCommenters: { [key: string]: boolean };
 }
 
-const VideoPlayer = ({
-	video,
-	channel,
-	parsedCommenters,
-}: VideoPlayerProps): ReactElement => {
+const VideoPlayer = ({ video, channel }: VideoPlayerProps): ReactElement => {
 	const basicVideo = channel.videos.find(
 		(basicVideo: any) => basicVideo.videoId == video.id
 	);
 
-	const commentsWithParsed = video.data.comments.map((comment: any) => ({
-		data: comment,
-		parsed: parsedCommenters[comment.author_id],
-	}));
-
-	const comments: any[] = [];
-
-	// add root comments
-	for (const comment of commentsWithParsed) {
-		if (comment.data.parent == 'root') {
-			comments.push({
-				comment: comment,
-				replies: [],
-			});
-		}
-	}
-
-	// add replies
-	for (const comment of commentsWithParsed) {
-		if (comment.data.parent != 'root') {
-			const parentComment = comments.find(
-				(parentComment) => parentComment.comment.data.id == comment.data.parent
-			);
-
-			parentComment.replies.push(comment);
-		}
-	}
-
 	const videoRef = useRef<HTMLVideoElement>(null);
 
 	const showVideo = () => {
-		console.log('video loaded');
-
 		if (!videoRef.current) return;
 		videoRef.current.classList.remove('loading-video');
 	};
@@ -200,22 +236,18 @@ const VideoPlayer = ({
 				<span className="comment-count"> - {video.data.comments.length}</span>
 			</h2>
 
-			<div className="comments">
-				{comments.map((comment) => (
-					<Comment
-						key={comment.comment.data.id}
-						comment={comment.comment}
-						replies={comment.replies}
-					/>
-				))}
-			</div>
+			<VideoComments comments={video.data.comments} />
 		</div>
 	);
 };
 
 const Watch = (): ReactElement => {
-	const [loading, setLoading] = useState(true);
-	const [videoInfo, setVideoInfo] = useState<any>();
+	const [videoInfo, setVideoInfo] = useState<any>({
+		video: null,
+		channel: null,
+		loading: true,
+		error: false,
+	});
 
 	const navigate = useNavigate();
 
@@ -224,33 +256,15 @@ const Watch = (): ReactElement => {
 
 	const Api = useContext(ApiContext);
 
-	const loadVideo = async () => {
-		if (!loading) setLoading(true);
-
-		try {
-			const { video, channel } = await Api.get('get-video-info', {
-				videoId,
-			});
-
-			const parsedCommenters = await Api.get('check-channels-parsed', {
-				channelIds: video.data.comments.map(
-					(comment: any) => comment.author_id
-				),
-			});
-
-			setVideoInfo({ video, channel, parsedCommenters });
-		} catch (e) {}
-
-		setLoading(false);
-	};
-
 	useEffect(() => {
-		loadVideo();
+		Api.getState(setVideoInfo, 'get-video-info', {
+			videoId,
+		});
 	}, []);
 
 	return (
 		<main className="watch-page">
-			{loading ? (
+			{videoInfo.loading ? (
 				<Loader message="loading" />
 			) : !videoInfo ? (
 				<>
@@ -259,9 +273,8 @@ const Watch = (): ReactElement => {
 				</>
 			) : (
 				<VideoPlayer
-					video={videoInfo.video}
-					channel={videoInfo.channel}
-					parsedCommenters={videoInfo.parsedCommenters}
+					video={videoInfo.data.video}
+					channel={videoInfo.data.channel}
 				/>
 			)}
 		</main>

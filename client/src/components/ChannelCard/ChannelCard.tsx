@@ -19,22 +19,21 @@ export const ChannelCard = ({
 	parsed,
 	onAcceptReject,
 }: ChannelCardProps): ReactElement => {
-	const [accepting, setAccepting] = useState(false);
-	const [rejecting, setRejecting] = useState(false);
+	const [accepting, setAccepting] = useState<null | 'accepting' | 'rejecting'>(
+		null
+	);
 
 	const Api = useContext(ApiContext);
 
 	const acceptOrReject = async (accept: boolean) => {
-		if (accept) setAccepting(true);
-		else setRejecting(true);
+		setAccepting(accept ? 'accepting' : 'rejecting');
 
 		const url = accept ? '/accept-channel' : '/filter-channel';
 		await Api.post(url, {
 			channelId: channel.id,
 		});
 
-		if (accept) setAccepting(false);
-		else setRejecting(false);
+		setAccepting(null);
 
 		onAcceptReject && onAcceptReject(channel.id, accept);
 	};
@@ -75,14 +74,14 @@ export const ChannelCard = ({
 									// variant="contained"
 									// color="primary"
 									label="accept"
-									loading={accepting}
+									loading={accepting == 'accepting'}
 								/>
 								<LoadingButton
 									onClick={(e: any) => acceptOrReject(false)}
 									// variant="contained"
 									// color="secondary"
 									label="reject"
-									loading={rejecting}
+									loading={accepting == 'rejecting'}
 								/>
 							</div>
 						)}
