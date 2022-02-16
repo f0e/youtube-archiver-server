@@ -117,8 +117,6 @@ const Search = ({ channels: allChannels }: SearchProps): ReactElement => {
 
 			<br />
 
-			{!searched && <h2>don't know what to watch?</h2>}
-
 			<div className="results">
 				{!searched ? (
 					randomVideos.map((video) => (

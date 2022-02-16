@@ -5,6 +5,7 @@ import {
 	Route,
 	useLocation,
 } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
 	NotificationsProvider,
 	useNotifications,
@@ -22,6 +23,42 @@ import ChannelPage from './pages/ChannelPage/ChannelPage';
 import './styles/variables.scss';
 import './App.scss';
 
+type Nav = {
+	path: string;
+	element: React.ReactElement;
+};
+
+type AnimatedRoutesProps = {
+	routes: Nav[];
+};
+
+export const AnimatedRoutes = ({ routes }: AnimatedRoutesProps) => {
+	const { pathname } = useLocation();
+
+	return (
+		<Routes>
+			{routes.map(({ path, element }) => (
+				<Route
+					key={path}
+					path={path}
+					element={
+						<AnimatePresence>
+							<motion.div
+								initial={{ opacity: 0, x: -5 }}
+								animate={{ opacity: 1, x: 0 }}
+								transition={{ duration: 0.2 }}
+								key={path}
+							>
+								{element}
+							</motion.div>
+						</AnimatePresence>
+					}
+				/>
+			))}
+		</Routes>
+	);
+};
+
 const NotificationClearer = ({ children }: any) => {
 	const location = useLocation();
 	const notifications = useNotifications();
@@ -32,6 +69,33 @@ const NotificationClearer = ({ children }: any) => {
 };
 
 const App = (): ReactElement => {
+	const routes: Nav[] = [
+		{
+			path: '/',
+			element: <Home />,
+		},
+		{
+			path: '/filter',
+			element: <Filter />,
+		},
+		{
+			path: '/connections',
+			element: <Connections />,
+		},
+		{
+			path: '/browse',
+			element: <Browse />,
+		},
+		{
+			path: '/channel/:channelId',
+			element: <ChannelPage />,
+		},
+		{
+			path: '/watch',
+			element: <Watch />,
+		},
+	];
+
 	return (
 		<div className="App">
 			<Router>
@@ -41,14 +105,7 @@ const App = (): ReactElement => {
 							<ApiStore>
 								<Navbar />
 
-								<Routes>
-									<Route path="/" element={<Home />} />
-									<Route path="/filter" element={<Filter />} />
-									<Route path="/connections" element={<Connections />} />
-									<Route path="/browse" element={<Browse />} />
-									<Route path="/channel/:channelId" element={<ChannelPage />} />
-									<Route path="/watch" element={<Watch />} />
-								</Routes>
+								<AnimatedRoutes routes={routes} />
 							</ApiStore>
 						</NotificationClearer>
 					</NotificationsProvider>
