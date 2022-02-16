@@ -9,21 +9,29 @@ import sleep from '../util/sleep';
 export const clientQueueListener = new EventEmitter();
 export const acceptedChannelListener = new EventEmitter();
 
-async function addChannel(channelId: string) {
+async function addChannel(channelId: string, isFiltered: boolean = false) {
 	if (await db.isChannelQueued(channelId)) return false;
 	if (await db.isChannelAccepted(channelId)) return false;
 	if (await db.isChannelRejected(channelId)) return false;
 	if (await db.isChannelParsed(channelId)) return false;
-	if (await db.isChannelFiltered(channelId)) return false;
+	if (!isFiltered) {
+		if (await db.isChannelFiltered(channelId)) return false;
+	}
 
 	const add = async () => {
-		// get channel data
+		const commentedChannels = await db.getChannelsCommentedOn(channelId);
+		const commented = commentedChannels.length;
+
+		if (filters.filterChannelComments(commented)) {
+			console.log('only commented on', commented, 'channels, filtering');
+			return false;
+		}
+
 		const channelData = await youtube.parseChannel(channelId);
 
 		// filter by channel
 		if (filters.filterChannel(channelData)) return false;
 
-		// get videos
 		let videos = await youtube.getVideos(channelId);
 
 		// filter by videos
@@ -36,9 +44,20 @@ async function addChannel(channelId: string) {
 		return true;
 	};
 
-	const added = await add();
-	if (!added) {
-		await db.filterChannel(channelId);
+	while (true) {
+		try {
+			const added = await add();
+
+			if (!isFiltered && !added) {
+				await db.filterChannel(channelId);
+			}
+
+			return added;
+		} catch (e) {
+			console.log(e.message);
+			console.log('failed to parse channel, retrying in 5 seconds');
+			await sleep(5000);
+		}
 	}
 }
 
@@ -79,8 +98,9 @@ async function parseChannelVideos(channel: any) {
 					await addChannel(commenter);
 				}
 
-				console.log('done');
 				await db.addVideo(videoId, videoData);
+
+				console.log('done');
 			} catch (e) {
 				const isPrivate = e.message.includes(
 					'Video unavailable. This video is private'
@@ -114,12 +134,15 @@ async function parseChannels() {
 	let channel;
 	while ((channel = await db.getNextChannel())) {
 		const queuedCount = await db.getAcceptedChannelCount();
-		console.log(`parsing new channel... ${queuedCount} channels queued\n`);
+		console.log(`parsing new channel... ${queuedCount} channels queued`);
 
-		await parseChannelVideos(channel);
-
-		// remove this channel from the queue
-		await db.removeFromAccepted(channel.id);
+		if (!channel.dontDownload) {
+			await parseChannelVideos(channel);
+		} else {
+			// don't download videos :)
+			await db.onChannelParsed(channel.id);
+			console.log('not downloading.');
+		}
 	}
 
 	console.log('no more channels queued');
@@ -158,8 +181,24 @@ async function fix() {
 	console.log('removed duplicate documents');
 }
 
+async function reFilter() {
+	const filteredChannels = await db.getFilteredChannels();
+	for (const [i, filteredChannel] of filteredChannels.entries()) {
+		const progressString = `${i + 1}/${filteredChannels.length}`;
+		console.log(
+			`refiltering ${progressString} (https://youtube.com/channel/${filteredChannel.id})`
+		);
+
+		if (await addChannel(filteredChannel.id, true)) {
+			await db.removeFromFilter(filteredChannel.id);
+		}
+		console.log('done');
+	}
+}
+
 export async function start() {
 	// await fix();
+	// await reFilter();
 
 	if (!(await db.isChannelParsed(process.env.START_CHANNEL))) {
 		await addChannel(process.env.START_CHANNEL);

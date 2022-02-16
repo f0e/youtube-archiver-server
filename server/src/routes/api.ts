@@ -21,26 +21,15 @@ router.get('/get-queued-channel', async (req, res) => {
 });
 
 router.post(
-	'/accept-channel',
+	'/move-channel',
 	body('channelId').isString(),
+	body('destination').isString(),
 	async (req, res) => {
-		const { channelId } = validate(req);
+		const { channelId, destination } = validate(req);
 
-		await db.acceptOrRejectChannel(channelId, true);
-		console.log('accepted channel', channelId);
+		await db.moveChannel(channelId, destination);
 
-		return res.json({ success: true });
-	}
-);
-
-router.post(
-	'/reject-channel',
-	body('channelId').isString(),
-	async (req, res) => {
-		const { channelId } = validate(req);
-
-		await db.acceptOrRejectChannel(channelId, false);
-		console.log('rejected channel', channelId);
+		console.log(`moved channel (${destination})`);
 
 		return res.json({ success: true });
 	}

@@ -8,6 +8,8 @@
 		display: flex;
 		gap: 1rem;
 
+		margin-bottom: 0.75rem;
+
 		.channel-avatar {
 			width: 8rem;
 			height: 8rem;
@@ -41,10 +43,13 @@
 						}
 					}
 
-					.accept-or-reject {
+					.accept-buttons {
 						display: flex;
-						justify-content: center;
-						gap: 1rem;
+						flex-wrap: wrap;
+						justify-content: end;
+						gap: 0.5rem;
+
+						max-width: 20rem;
 					}
 				}
 			}
@@ -60,31 +65,44 @@
 				font-size: 0.9em;
 				margin-bottom: 0.5rem;
 			}
+		}
+	}
 
-			.channel-tags {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 0.2rem;
+	.channel-description {
+		padding: 0.75rem;
 
-				.channel-tag {
-					display: inline;
+		margin-bottom: 0.75rem;
 
-					padding: 0.3rem 0.5rem;
-					font-size: 0.8em;
+		border: 1px solid var(--card-border);
+		border-radius: 0.5rem;
 
-					border: 1px solid var(--card-border);
-					border-radius: 0.5rem;
+		background-color: var(--card-background);
+	}
 
-					background-color: var(--card-background);
+	.channel-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.2rem;
 
-					cursor: pointer;
+		margin-bottom: 0.75rem;
 
-					transition: background-color 0.1s;
+		.channel-tag {
+			display: inline;
 
-					&:hover {
-						background-color: rgba(255, 255, 255, 0.1);
-					}
-				}
+			padding: 0.3rem 0.5rem;
+			font-size: 0.8em;
+
+			border: 1px solid var(--card-border);
+			border-radius: 0.5rem;
+
+			background-color: var(--card-background);
+
+			cursor: pointer;
+
+			transition: background-color 0.1s;
+
+			&:hover {
+				background-color: rgba(255, 255, 255, 0.1);
 			}
 		}
 	}

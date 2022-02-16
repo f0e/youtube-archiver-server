@@ -1,16 +1,21 @@
 const filters = {
 	// channels
+	minChannelsCommentedOn: 1,
 	minSubscribers: 0,
-	maxSubscribers: 5000,
-	maxVideos: 100,
+	maxSubscribers: Number.MAX_VALUE,
+	maxVideos: Number.MAX_VALUE,
 
 	// videos
 	blockLivestreams: true,
-	blockNoVideos: true,
+	blockNoVideos: false,
 	minVideoLength: 15,
 	maxVideoLength: 60 * 5,
 	// minViews: 100,
 };
+
+export function filterChannelComments(commented: number) {
+	return commented < filters.minChannelsCommentedOn;
+}
 
 export function filterChannel(channelData: any) {
 	return (

@@ -60,7 +60,7 @@ const Filter = (): ReactElement => {
 		getNewChannel();
 	}, []);
 
-	const onAcceptReject = (channelId: string, accepted: boolean) => {
+	const onAcceptReject = () => {
 		getNewChannel();
 	};
 

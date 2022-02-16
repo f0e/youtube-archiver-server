@@ -42,8 +42,9 @@ export async function downloadAllVideos() {
 		// const videoPath = await getVideoPath(video, true);
 		// if (!fs.existsSync(videoPath)) throw new Error('video deleted');
 
+		const progressString = `${i + 1}/${videos.length}`;
 		console.log(
-			`downloading video '${video.data.title}' by ${video.data.uploader} (${i}/${videos.length})`
+			`downloading video '${video.data.title}' by ${video.data.uploader} (${progressString})`
 		);
 
 		while (true) {

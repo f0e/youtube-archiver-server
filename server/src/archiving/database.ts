@@ -147,34 +147,62 @@ class Database {
 		await channelQueue.deleteOne({ id: channelId });
 	};
 
-	acceptOrRejectChannel = async (channelId: string, accepted: boolean) => {
+	moveChannel = async (
+		channelId: string,
+		destination: 'accept' | 'reject' | 'acceptNoDownload'
+	) => {
 		const channelQueue = this.db.collection('channelQueue');
 		const channel = await channelQueue.findOne({ id: channelId });
+		if (!channel) return;
 
 		// move the channel
-		let newQueue;
-		if (accepted) newQueue = this.db.collection('acceptedChannelQueue');
-		else newQueue = this.db.collection('rejectedChannels');
+		const getDestination = () => {
+			switch (destination) {
+				case 'acceptNoDownload':
+				case 'accept':
+					return this.db.collection('acceptedChannelQueue');
+
+				case 'reject':
+					return this.db.collection('rejectedChannels');
+
+				default:
+					return null;
+			}
+		};
+
+		const newQueue = getDestination();
+		if (!newQueue) throw new Error('invalid destination');
+
+		if (destination == 'acceptNoDownload') {
+			channel.dontDownload = true;
+		}
 
 		await newQueue.insertOne(channel);
-		await channelQueue.deleteOne(channel);
+		await channelQueue.deleteOne({ id: channelId });
 
 		// update queue
 		queue.onAcceptOrRejectChannel(channelId);
 
 		// emit events
-		if (accepted) acceptedChannelListener.emit('accepted');
-		clientQueueListener.emit('channel', channel);
-	};
+		if (destination == 'acceptNoDownload' || destination == 'accept')
+			acceptedChannelListener.emit('accepted');
 
-	removeFromAccepted = async (channelId: string) => {
-		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
-		await acceptedChannelQueue.deleteOne({ id: channelId });
+		clientQueueListener.emit('channel', channel);
 	};
 
 	filterChannel = async (channelId: string) => {
 		const filteredChannels = this.db.collection('filteredChannels');
 		await filteredChannels.insertOne({ id: channelId });
+	};
+
+	getFilteredChannels = async () => {
+		const filteredChannels = this.db.collection('filteredChannels');
+		return await filteredChannels.find().toArray();
+	};
+
+	removeFromFilter = async (channelId: string) => {
+		const filteredChannels = this.db.collection('filteredChannels');
+		await filteredChannels.deleteOne({ id: channelId });
 	};
 
 	onChannelParsed = async (channelId: string) => {
@@ -184,7 +212,7 @@ class Database {
 		const channels = this.db.collection('channels');
 
 		await channels.insertOne(channel);
-		await acceptedChannelQueue.deleteOne(channel);
+		await acceptedChannelQueue.deleteOne({ id: channelId });
 	};
 
 	getNextChannel = async () => {

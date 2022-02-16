@@ -1,12 +1,18 @@
 import React, { ReactElement } from 'react';
-import { Button, Loader as MantineLoader } from '@mantine/core';
+import {
+	Button,
+	ButtonVariant,
+	Loader as MantineLoader,
+	MantineColor,
+} from '@mantine/core';
 
 import './LoadingButton.scss';
 
 interface LoadingButtonProps {
 	onClick?: (e: any) => void;
-	// props: ButtonProps;
 	label: string;
+	variant?: ButtonVariant;
+	color?: MantineColor;
 	style?: Record<string, unknown>;
 	loading?: boolean;
 	className?: string;
@@ -15,6 +21,8 @@ interface LoadingButtonProps {
 const LoadingButton = ({
 	onClick,
 	label,
+	variant,
+	color,
 	style,
 	loading,
 	className,
@@ -25,6 +33,8 @@ const LoadingButton = ({
 				type="submit"
 				onClick={onClick}
 				disabled={loading}
+				variant={variant}
+				color={color}
 				style={{ ...style, height: 35 }}
 			>
 				<span className="spinner">

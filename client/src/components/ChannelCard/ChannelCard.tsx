@@ -10,50 +10,52 @@ import './ChannelCard.scss';
 
 interface AcceptOrRejectProps {
 	channelId: string;
-	onAcceptReject?: (channelId: string, accepted: boolean) => void;
+	onAcceptReject?: () => void;
 }
+
+type ChannelDestination = 'accept' | 'reject' | 'acceptNoDownload';
 
 const AcceptOrReject = ({
 	channelId,
 	onAcceptReject,
 }: AcceptOrRejectProps): ReactElement => {
-	const [accepting, setAccepting] = useState<null | 'accepting' | 'rejecting'>(
-		null
-	);
+	const [moving, setMoving] = useState<null | ChannelDestination>(null);
 
 	const Api = useContext(ApiContext);
 
-	const acceptOrReject = async (accept: boolean) => {
-		setAccepting(accept ? 'accepting' : 'rejecting');
-
-		const url = accept ? '/accept-channel' : '/reject-channel';
+	const acceptOrReject = async (destination: ChannelDestination) => {
+		setMoving(destination);
 
 		try {
-			await Api.post(url, {
-				channelId: channelId,
+			await Api.post('move-channel', {
+				channelId,
+				destination,
 			});
 
-			onAcceptReject && onAcceptReject(channelId, accept);
+			onAcceptReject && onAcceptReject();
 		} catch (e) {
-			setAccepting(null);
+			setMoving(null);
 		}
 	};
 
 	return (
-		<div className="accept-or-reject">
+		<div className="accept-buttons">
 			<LoadingButton
-				onClick={(e: any) => acceptOrReject(true)}
-				// variant="contained"
-				// color="primary"
+				onClick={(e: any) => acceptOrReject('accept')}
 				label="accept"
-				loading={accepting == 'accepting'}
+				loading={moving == 'accept'}
 			/>
 			<LoadingButton
-				onClick={(e: any) => acceptOrReject(false)}
-				// variant="contained"
-				// color="secondary"
+				onClick={(e: any) => acceptOrReject('acceptNoDownload')}
+				variant="outline"
+				label="accept (no downloads)"
+				loading={moving == 'acceptNoDownload'}
+			/>
+			<LoadingButton
+				onClick={(e: any) => acceptOrReject('reject')}
+				color="red"
 				label="reject"
-				loading={accepting == 'rejecting'}
+				loading={moving == 'reject'}
 			/>
 		</div>
 	);
@@ -62,7 +64,7 @@ const AcceptOrReject = ({
 interface ChannelCardProps {
 	channel: Channel;
 	parsed: boolean;
-	onAcceptReject?: (channelId: string, accepted: boolean) => void;
+	onAcceptReject?: () => void;
 	commentedCount?: number;
 }
 
@@ -72,11 +74,14 @@ export const ChannelCard = ({
 	onAcceptReject,
 	commentedCount,
 }: ChannelCardProps): ReactElement => {
-	const channelLink = (children: any) => (
-		<ConditionalLink to={`/channel/${channel.id}`} condition={parsed}>
-			{children}
-		</ConditionalLink>
-	);
+	const channelLink = (children: any) =>
+		parsed ? (
+			<ConditionalLink to={`/channel/${channel.id}`} condition={parsed}>
+				{children}
+			</ConditionalLink>
+		) : (
+			<a href={`https://youtube.com/channel/${channel.id}`}>{children}</a>
+		);
 
 	return (
 		<Card className="channel-card">
@@ -120,18 +125,22 @@ export const ChannelCard = ({
 							)}
 						</div>
 					</div>
-					<div className="channel-tags">
-						{channel.data.tags &&
-							channel.data.tags.map((tag: string, i: number) => (
-								<div key={`tag-${i}`} className="channel-tag">
-									{tag}
-								</div>
-							))}
-					</div>
 				</div>
 			</div>
 
-			<p>{channel.data.description}</p>
+			{channel.data.description && (
+				<div className="channel-description">{channel.data.description}</div>
+			)}
+
+			{channel.data.tags && (
+				<div className="channel-tags">
+					{channel.data.tags.map((tag: string, i: number) => (
+						<div key={`tag-${i}`} className="channel-tag">
+							{tag}
+						</div>
+					))}
+				</div>
+			)}
 
 			{channel.videos.length == 0 ? (
 				<div className="no-videos">no videos</div>
