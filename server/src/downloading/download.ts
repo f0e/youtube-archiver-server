@@ -55,7 +55,8 @@ export async function downloadAllVideos() {
 
 				break;
 			} catch (e) {
-				console.log(`failed to download, retrying in 5 seconds`, e);
+				console.log(e.message);
+				console.log('failed to download, retrying in 5 seconds');
 				await sleep(5000);
 			}
 		}

@@ -4,17 +4,18 @@ import React, {
 	useEffect,
 	useState,
 } from 'react';
-import { createTheme, ThemeProvider } from '@mui/material';
+import { MantineProvider, MantineThemeOverride } from '@mantine/core';
 
 interface ThemeContextInterface {
 	darkTheme: boolean;
+	setDarkTheme: (newDarkTheme: boolean) => void;
 	toggleDarkTheme: () => void;
 }
 
 const ThemeContext = createContext({} as ThemeContextInterface);
 
 export const ThemeStore: FunctionComponent = ({ children }) => {
-	const [darkTheme, setDarkTheme] = useState((): boolean => {
+	const [_darkTheme, _setDarkTheme] = useState((): boolean => {
 		try {
 			return JSON.parse(localStorage.getItem('darkTheme') as string);
 		} catch (e) {
@@ -23,26 +24,30 @@ export const ThemeStore: FunctionComponent = ({ children }) => {
 	});
 
 	useEffect(() => {
-		document.documentElement.dataset.theme = `theme-${
-			darkTheme ? 'dark' : 'light'
-		}`;
-	}, [darkTheme]);
+		localStorage.setItem('darkTheme', JSON.stringify(_darkTheme));
 
-	const toggleDarkTheme = (): void => {
-		const newDarkTheme = !darkTheme;
-		setDarkTheme(newDarkTheme);
-		localStorage.setItem('darkTheme', JSON.stringify(newDarkTheme));
+		document.documentElement.dataset.theme = `theme-${
+			_darkTheme ? 'dark' : 'light'
+		}`;
+	}, [_darkTheme]);
+
+	const setDarkTheme = (newDarkTheme: boolean): void => {
+		_setDarkTheme(newDarkTheme);
 	};
 
-	const theme = createTheme({
-		palette: {
-			mode: darkTheme ? 'dark' : 'light',
-		},
-	});
+	const toggleDarkTheme = (): void => {
+		_setDarkTheme((cur) => !cur);
+	};
+
+	const theme: MantineThemeOverride = {
+		colorScheme: _darkTheme ? 'dark' : 'light',
+	};
 
 	return (
-		<ThemeContext.Provider value={{ darkTheme, toggleDarkTheme }}>
-			<ThemeProvider theme={theme}>{children}</ThemeProvider>
+		<ThemeContext.Provider
+			value={{ darkTheme: _darkTheme, setDarkTheme, toggleDarkTheme }}
+		>
+			<MantineProvider theme={theme}>{children}</MantineProvider>
 		</ThemeContext.Provider>
 	);
 };

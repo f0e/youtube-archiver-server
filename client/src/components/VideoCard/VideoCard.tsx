@@ -6,11 +6,13 @@ import './VideoCard.scss';
 interface VideoCardProps {
 	basicVideo: any;
 	fadeNotDownloaded: boolean;
+	showChannel: boolean;
 }
 
 export const VideoCard = ({
 	basicVideo,
 	fadeNotDownloaded,
+	showChannel,
 }: VideoCardProps): ReactElement => {
 	const videoLink = (children: any) =>
 		basicVideo.downloaded ? (
@@ -44,6 +46,9 @@ export const VideoCard = ({
 
 					<div className="video-details">
 						<div className="video-title">{basicVideo.title}</div>
+						{showChannel && (
+							<div className="video-author"> {basicVideo.author}</div>
+						)}
 						<div className="views-and-date">
 							{basicVideo.viewCountText} • {basicVideo.publishedText}
 						</div>

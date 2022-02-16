@@ -33,10 +33,17 @@
 		padding-top: 0.7rem;
 
 		.video-title {
-			margin-bottom: 0.15rem;
+		}
+
+		.video-author {
+			margin-top: 0.1rem;
+			margin-bottom: 0.35rem;
+
+			opacity: 0.5;
 		}
 
 		.views-and-date {
+			margin-top: 0.1rem;
 			font-size: 0.9em;
 			opacity: 0.75;
 		}

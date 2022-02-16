@@ -38,10 +38,13 @@ const downloadOptions = [
 	remuxFormat,
 ];
 
+const cookies = ['--cookies-from-browser', 'brave'];
+
 export async function parseVideo(videoId: string) {
 	const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 	const videoData = await ytDlpWrap.getVideoInfo([
 		'--write-comments',
+		...cookies,
 		videoUrl,
 	]);
 
@@ -91,7 +94,7 @@ export function downloadVideo(videoId: string, downloadPath: string) {
 
 	return new Promise((resolve, reject) => {
 		ytDlpWrap
-			.exec([...downloadOptions, videoUrl, '-o', downloadPath])
+			.exec([...downloadOptions, ...cookies, videoUrl, '-o', downloadPath])
 			.on('progress', (progress) => {
 				console.log(
 					`${progress.percent}% ${progress.currentSpeed} ${progress.eta}`

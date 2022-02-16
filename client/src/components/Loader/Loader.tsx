@@ -1,5 +1,5 @@
-import { CircularProgress } from '@mui/material';
 import React, { ReactElement } from 'react';
+import { Loader as MantineLoader } from '@mantine/core';
 
 import './Loader.scss';
 
@@ -10,7 +10,7 @@ interface LoaderProps {
 const Loader = ({ message }: LoaderProps): ReactElement => {
 	return (
 		<div className="loader">
-			<CircularProgress color="secondary" />
+			<MantineLoader />
 			<span>{message}</span>
 		</div>
 	);

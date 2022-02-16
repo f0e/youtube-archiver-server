@@ -3,8 +3,12 @@
 	margin: 0 auto;
 }
 
-.channels {
-	display: flex;
-	flex-direction: column;
+.results {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
 	gap: 1rem;
+
+	.channel-card {
+		grid-column: 1 / -1;
+	}
 }

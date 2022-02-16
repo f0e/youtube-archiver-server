@@ -56,10 +56,9 @@ a {
 	text-decoration: underline;
 }
 
-// material ui links
-.MuiLink-root {
-	color: inherit !important;
-	text-decoration: none !important;
+// mantine cards
+.mantine-Card-root {
+	color: inherit; // don't use dim text colour
 }
 
 .unparsed {

@@ -1,10 +1,17 @@
-import React, { ReactElement } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { MessageStore } from './context/MessageContext';
+import React, { ReactElement, useEffect } from 'react';
+import {
+	BrowserRouter as Router,
+	Routes,
+	Route,
+	useLocation,
+} from 'react-router-dom';
+import {
+	NotificationsProvider,
+	useNotifications,
+} from '@mantine/notifications';
 import { ThemeStore } from './context/ThemeContext';
 import { ApiStore } from './context/ApiContext';
 import Navbar from './components/Navbar/Navbar';
-import MessageBar from './components/MessageBar/MessageBar';
 import Home from './pages/Home/Home';
 import Filter from './pages/Filter/Filter';
 import Connections from './pages/Connections/Connections';
@@ -15,27 +22,36 @@ import ChannelPage from './pages/ChannelPage/ChannelPage';
 import './styles/variables.scss';
 import './App.scss';
 
+const NotificationClearer = ({ children }: any) => {
+	const location = useLocation();
+	const notifications = useNotifications();
+
+	useEffect(notifications.clean, [location]);
+
+	return <>{children}</>;
+};
+
 const App = (): ReactElement => {
 	return (
 		<div className="App">
 			<Router>
 				<ThemeStore>
-					<MessageStore>
-						<ApiStore>
-							<Navbar />
+					<NotificationsProvider>
+						<NotificationClearer>
+							<ApiStore>
+								<Navbar />
 
-							<Routes>
-								<Route path="/" element={<Home />} />
-								<Route path="/filter" element={<Filter />} />
-								<Route path="/connections" element={<Connections />} />
-								<Route path="/browse" element={<Browse />} />
-								<Route path="/channel/:channelId" element={<ChannelPage />} />
-								<Route path="/watch" element={<Watch />} />
-							</Routes>
-
-							<MessageBar />
-						</ApiStore>
-					</MessageStore>
+								<Routes>
+									<Route path="/" element={<Home />} />
+									<Route path="/filter" element={<Filter />} />
+									<Route path="/connections" element={<Connections />} />
+									<Route path="/browse" element={<Browse />} />
+									<Route path="/channel/:channelId" element={<ChannelPage />} />
+									<Route path="/watch" element={<Watch />} />
+								</Routes>
+							</ApiStore>
+						</NotificationClearer>
+					</NotificationsProvider>
 				</ThemeStore>
 			</Router>
 		</div>

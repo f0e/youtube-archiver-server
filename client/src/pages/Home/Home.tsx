@@ -1,6 +1,13 @@
 import React, { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@mui/material';
+import {
+	Button,
+	AppShell,
+	Navbar,
+	Header,
+	Burger,
+	MediaQuery,
+} from '@mantine/core';
 
 import './Home.scss';
 
@@ -11,15 +18,15 @@ const Home = (): ReactElement => {
 
 			<div className="links">
 				<Link to="/browse">
-					<Button variant="outlined">browse</Button>
+					<Button>browse</Button>
 				</Link>
 
 				<Link to="/filter">
-					<Button variant="outlined">filter</Button>
+					<Button>filter</Button>
 				</Link>
 
 				<Link to="/connections">
-					<Button variant="outlined">connections</Button>
+					<Button>connections</Button>
 				</Link>
 			</div>
 		</main>

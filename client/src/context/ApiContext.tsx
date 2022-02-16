@@ -1,6 +1,6 @@
 import React, { createContext, FunctionComponent, useContext } from 'react';
+import { useNotifications } from '@mantine/notifications';
 import axios, { AxiosRequestConfig } from 'axios';
-import MessageContext from './MessageContext';
 
 type ApiCallParameters = {
 	[key: string]: any;
@@ -23,7 +23,17 @@ export interface ApiContextInterface {
 const ApiContext = createContext({} as ApiContextInterface);
 
 export const ApiStore: FunctionComponent = ({ children }) => {
-	const { setMessage } = useContext(MessageContext);
+	const notifications = useNotifications();
+
+	const onError = (errorMessage: string | null) => {
+		notifications.showNotification({
+			title: 'network request fail',
+			message:
+				errorMessage ||
+				'an unexpected error has occurred, please try again later',
+			color: 'red',
+		});
+	};
 
 	const get = async (
 		url: string,
@@ -38,15 +48,11 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 
 			return res.data;
 		} catch (e: any) {
-			const error = e.response?.data?.message;
+			const errorMessage = e.response?.data?.message;
 
-			setMessage({
-				type: 'error',
-				message:
-					error || 'An unexpected error has occurred, please try again later',
-			});
+			onError(errorMessage);
 
-			throw error;
+			throw errorMessage;
 		}
 	};
 
@@ -60,15 +66,11 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 
 			return res.data.data;
 		} catch (e: any) {
-			const error = e.response?.data?.message;
+			const errorMessage = e.response?.data?.message;
 
-			setMessage({
-				type: 'error',
-				message:
-					error || 'An unexpected error has occurred, please try again later',
-			});
+			onError(errorMessage);
 
-			throw error;
+			throw errorMessage;
 		}
 	};
 

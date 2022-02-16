@@ -137,7 +137,7 @@ class Database {
 		await newQueue.insertOne(channel);
 		await channelQueue.deleteOne(channel);
 
-		acceptedChannelListener.emit('accepted');
+		if (accepted) acceptedChannelListener.emit('accepted');
 	};
 
 	removeFromAccepted = async (channelId: string) => {
@@ -182,9 +182,12 @@ class Database {
 	getQueuedChannels = async () => {
 		const channelQueue = this.db.collection('channelQueue');
 		const queue = await channelQueue.find().toArray();
-		// todo: can i remove this
-		if (queue.length == 0) return [];
-		else return queue;
+		return queue;
+	};
+
+	removeFromQueue = async (channelId: string) => {
+		const channelQueue = this.db.collection('channelQueue');
+		await channelQueue.deleteOne({ id: channelId });
 	};
 
 	getChannels = async () => {
@@ -218,12 +221,51 @@ class Database {
 		return await acceptedChannelQueue.findOne({ id: channelId });
 	};
 
+	isChannelRejected = async (channelId: string) => {
+		const rejectedChannels = this.db.collection('rejectedChannels');
+		return await rejectedChannels.findOne({ id: channelId });
+	};
+
+	isChannelFiltered = async (channelId: string) => {
+		const filteredChannels = this.db.collection('filteredChannels');
+		return await filteredChannels.findOne({ id: channelId });
+	};
+
 	isChannelParsed = async (channelId: string) => {
-		return this.getChannel(channelId) != null;
+		const channel = await this.getChannel(channelId);
+		return channel != null;
 	};
 
 	isVideoParsed = async (videoId: string) => {
-		return this.getVideo(videoId) != null;
+		const video = await this.getVideo(videoId);
+		return video != null;
+	};
+
+	checkDuplicates = async (collectionName: string) => {
+		const collection = this.db.collection(collectionName);
+
+		const duplicates = await collection
+			.aggregate([
+				{
+					$group: {
+						_id: { id: '$id' },
+						dups: { $push: '$_id' },
+						count: { $sum: 1 },
+					},
+				},
+				{ $match: { count: { $gt: 1 } } },
+			])
+			.toArray();
+
+		console.log(
+			`deleting ${duplicates.length} duplicates from ${collectionName}`
+		);
+
+		for (const duplicate of duplicates) {
+			const deletingIds = duplicate.dups;
+			deletingIds.shift(); // keep one.
+			await collection.deleteMany({ _id: { $in: deletingIds } });
+		}
 	};
 }
 

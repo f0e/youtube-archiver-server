@@ -1,16 +1,16 @@
-.navbar-container {
-	padding: 0.5rem;
+.navbar {
+	display: flex;
 
-	.navbar {
-		.navbar-title {
-			font-weight: bold;
-			font-size: 1.3em;
+	padding: 1rem;
 
-			transition: color 0.1s;
-		}
+	.navbar-title {
+		font-weight: bold;
+		font-size: 1.3em;
 
-		.navbar-title:hover {
-			color: var(--secondary);
-		}
+		transition: color 0.1s;
+	}
+
+	.navbar-title:hover {
+		color: var(--secondary);
 	}
 }

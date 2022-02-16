@@ -1,75 +1,82 @@
-.channel-header {
-	display: flex;
-	gap: 1rem;
+.channel-card {
+	border: 1px solid var(--card-border);
+	border-radius: 0.5rem;
 
-	.channel-avatar {
-		width: 8rem;
-		height: 8rem;
-		border-radius: 0.25rem;
-	}
+	background-color: var(--card-background);
 
-	.channel-info {
-		flex-grow: 1;
+	.channel-header {
+		display: flex;
+		gap: 1rem;
 
-		.top-info {
-			display: flex;
-			justify-content: space-between;
+		.channel-avatar {
+			width: 8rem;
+			height: 8rem;
+			border-radius: 0.25rem;
+		}
 
-			.accept-or-reject {
+		.channel-info {
+			flex-grow: 1;
+
+			.top-info {
 				display: flex;
-				justify-content: center;
-				gap: 1rem;
+				justify-content: space-between;
+
+				.accept-or-reject {
+					display: flex;
+					justify-content: center;
+					gap: 1rem;
+				}
 			}
-		}
 
-		.channel-name {
-			font-weight: bold;
-			font-size: 2em;
-			margin-bottom: 0.3rem;
-		}
+			.channel-name {
+				font-weight: bold;
+				font-size: 2em;
+				margin-bottom: 0.3rem;
+			}
 
-		.channel-subscriptions {
-			opacity: 0.75;
-			font-size: 0.9em;
-			margin-bottom: 0.5rem;
-		}
+			.channel-subscriptions {
+				opacity: 0.75;
+				font-size: 0.9em;
+				margin-bottom: 0.5rem;
+			}
 
-		.channel-tags {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 0.2rem;
+			.channel-tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.2rem;
 
-			.channel-tag {
-				display: inline;
+				.channel-tag {
+					display: inline;
 
-				padding: 0.3rem 0.5rem;
-				font-size: 0.8em;
+					padding: 0.3rem 0.5rem;
+					font-size: 0.8em;
 
-				border: 1px solid var(--card-border);
-				border-radius: 0.5rem;
+					border: 1px solid var(--card-border);
+					border-radius: 0.5rem;
 
-				background-color: var(--card-background);
+					background-color: var(--card-background);
 
-				cursor: pointer;
+					cursor: pointer;
 
-				transition: background-color 0.1s;
+					transition: background-color 0.1s;
 
-				&:hover {
-					background-color: rgba(255, 255, 255, 0.1);
+					&:hover {
+						background-color: rgba(255, 255, 255, 0.1);
+					}
 				}
 			}
 		}
 	}
-}
 
-.no-videos {
-	text-align: center;
+	.no-videos {
+		text-align: center;
 
-	opacity: 0.75;
-}
+		opacity: 0.75;
+	}
 
-.channel-videos {
-	display: grid;
-	gap: 0.7rem;
-	grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+	.channel-videos {
+		display: grid;
+		gap: 0.7rem;
+		grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+	}
 }

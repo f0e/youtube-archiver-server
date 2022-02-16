@@ -1,3 +1,4 @@
+import { Button } from '@mantine/core';
 import React, {
 	ReactElement,
 	useContext,
@@ -5,7 +6,7 @@ import React, {
 	useRef,
 	useState,
 } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import ConditionalLink from '../../components/ConditionalLink/ConditionalLink';
 import Loader from '../../components/Loader/Loader';
 import ApiContext from '../../context/ApiContext';
@@ -149,7 +150,7 @@ const VideoPlayer = ({
 				controls
 				onLoadedData={showVideo}
 				ref={videoRef}
-				autoPlay
+				// autoPlay
 			>
 				<source src={`get-video-stream?videoId=${video.id}`} type="video/mp4" />
 			</video>
@@ -216,6 +217,8 @@ const Watch = (): ReactElement => {
 	const [loading, setLoading] = useState(true);
 	const [videoInfo, setVideoInfo] = useState<any>();
 
+	const navigate = useNavigate();
+
 	const [searchParams, setSearchParams] = useSearchParams();
 	const videoId = searchParams.get('v');
 
@@ -224,15 +227,20 @@ const Watch = (): ReactElement => {
 	const loadVideo = async () => {
 		if (!loading) setLoading(true);
 
-		const { video, channel } = await Api.get('get-video-info', {
-			videoId,
-		});
+		try {
+			const { video, channel } = await Api.get('get-video-info', {
+				videoId,
+			});
 
-		const parsedCommenters = await Api.get('check-channels-parsed', {
-			channelIds: video.data.comments.map((comment: any) => comment.author_id),
-		});
+			const parsedCommenters = await Api.get('check-channels-parsed', {
+				channelIds: video.data.comments.map(
+					(comment: any) => comment.author_id
+				),
+			});
 
-		setVideoInfo({ video, channel, parsedCommenters });
+			setVideoInfo({ video, channel, parsedCommenters });
+		} catch (e) {}
+
 		setLoading(false);
 	};
 
@@ -245,7 +253,10 @@ const Watch = (): ReactElement => {
 			{loading ? (
 				<Loader message="loading" />
 			) : !videoInfo ? (
-				<div>failed to load video</div>
+				<>
+					<h1>failed to load video</h1>
+					<Button onClick={() => navigate(-1)}>back</Button>
+				</>
 			) : (
 				<VideoPlayer
 					video={videoInfo.video}
