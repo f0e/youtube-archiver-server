@@ -1,39 +1,35 @@
-import React, { ReactElement, useEffect, useRef, useState } from 'react';
+import React, {
+	ReactElement,
+	useContext,
+	useEffect,
+	useRef,
+	useState,
+} from 'react';
+import CountUp from 'react-countup';
 import { ChannelCard } from '../../components/ChannelCard/ChannelCard';
+import ApiContext from '../../context/ApiContext';
 import Channel from '../../types/channel';
 
 import './Filter.scss';
 
-const Filter = (): ReactElement => {
-	const [channels, setChannels] = useState<Channel[]>([]);
-	const [lastId, setLastId] = useState<string | null>(null);
-	const [queueCount, setQueueCount] = useState(0);
+const QueueCount = (): ReactElement => {
+	const [queueCount, setQueueCount] = useState({ from: 0, to: 0 });
 
 	const ws = useRef<WebSocket | null>(null);
 
 	useEffect(() => {
-		ws.current = new WebSocket('ws://localhost:3001/ws/channelQueue');
+		ws.current = new WebSocket('ws://localhost:3001/ws/queueCount');
 
-		ws.current.onopen = () => console.log('connected');
-		ws.current.onclose = () => console.log('disconnected');
+		// ws.current.onopen = () => console.log('opened websocket');
+		// ws.current.onclose = () => console.log('closed websocket');
 
 		ws.current.onmessage = async (e: MessageEvent) => {
-			const message: any = JSON.parse(e.data);
+			const count = JSON.parse(e.data);
 
-			switch (message.type) {
-				case 'channels': {
-					setChannels((cur) => cur.concat(message.data));
-
-					const lastChannel = message.data.at(-1);
-					if (lastChannel) setLastId(lastChannel.id);
-
-					break;
-				}
-				case 'count': {
-					setQueueCount(message.data);
-					break;
-				}
-			}
+			setQueueCount((cur) => ({
+				from: cur.to,
+				to: count,
+			}));
 		};
 
 		const wsCurrent = ws.current;
@@ -42,35 +38,45 @@ const Filter = (): ReactElement => {
 		};
 	}, []);
 
-	const requestNewChannel = () => {
-		if (!ws.current) return;
+	return (
+		<div>
+			<CountUp start={queueCount.from} end={queueCount.to} duration={0.25} />{' '}
+			queued
+		</div>
+	);
+};
 
-		ws.current.send(
-			JSON.stringify({
-				type: 'getNewChannel',
-				lastId,
-			})
-		);
+const Filter = (): ReactElement => {
+	const [channels, setChannels] = useState<any[]>([]);
+
+	const Api = useContext(ApiContext);
+
+	const getNewChannel = async () => {
+		const channel = await Api.get('/get-queued-channel');
+		setChannels([channel]);
 	};
 
-	const onAcceptReject = (channelId: string, accepted: boolean) => {
-		setChannels((cur) => cur.filter((channel) => channel.id != channelId));
+	useEffect(() => {
+		getNewChannel();
+	}, []);
 
-		requestNewChannel();
+	const onAcceptReject = (channelId: string, accepted: boolean) => {
+		getNewChannel();
 	};
 
 	return (
 		<main className="filter-page">
 			<h1 style={{ marginBottom: '0.5rem' }}>channel filter</h1>
-			<div>{queueCount} queued</div>
+			<QueueCount />
 			<br />
 
 			<div className="channels">
 				{channels.map((channel) => (
 					<ChannelCard
-						key={channel.id}
+						key={channel.channel.id}
 						parsed={false}
-						channel={channel}
+						channel={channel.channel}
+						commentedCount={channel.commented}
 						onAcceptReject={onAcceptReject}
 					/>
 				))}

@@ -40,7 +40,7 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 
 	const onError = (errorMessage: string | null) => {
 		notifications.showNotification({
-			title: 'network request fail',
+			title: 'fail',
 			message:
 				errorMessage ||
 				'an unexpected error has occurred, please try again later',

@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import { Collection, Db, MongoClient } from 'mongodb';
 import { acceptedChannelListener, clientQueueListener } from './archive';
 import { getVideoPath } from '../downloading/download';
+import * as queue from '../queue/queue';
 
 const updateHistoryArray = async (
 	collection: Collection,
@@ -126,10 +127,31 @@ class Database {
 		clientQueueListener.emit('channel', channel);
 	};
 
+	getQueuedChannelCount = async () => {
+		const channelQueue = this.db.collection('channelQueue');
+		return await channelQueue.countDocuments();
+	};
+
+	getQueuedChannel = async (channelId: string) => {
+		const channelQueue = this.db.collection('channelQueue');
+		return await channelQueue.findOne({ id: channelId });
+	};
+
+	getQueuedChannels = async () => {
+		const channelQueue = this.db.collection('channelQueue');
+		return await channelQueue.find().toArray();
+	};
+
+	removeFromQueue = async (channelId: string) => {
+		const channelQueue = this.db.collection('channelQueue');
+		await channelQueue.deleteOne({ id: channelId });
+	};
+
 	acceptOrRejectChannel = async (channelId: string, accepted: boolean) => {
 		const channelQueue = this.db.collection('channelQueue');
 		const channel = await channelQueue.findOne({ id: channelId });
 
+		// move the channel
 		let newQueue;
 		if (accepted) newQueue = this.db.collection('acceptedChannelQueue');
 		else newQueue = this.db.collection('rejectedChannels');
@@ -137,7 +159,12 @@ class Database {
 		await newQueue.insertOne(channel);
 		await channelQueue.deleteOne(channel);
 
+		// update queue
+		queue.onAcceptOrRejectChannel(channelId);
+
+		// emit events
 		if (accepted) acceptedChannelListener.emit('accepted');
+		clientQueueListener.emit('channel', channel);
 	};
 
 	removeFromAccepted = async (channelId: string) => {
@@ -169,31 +196,14 @@ class Database {
 		else return firstChannel;
 	};
 
-	getQueuedChannelCount = async () => {
-		const channelQueue = this.db.collection('channelQueue');
-		return await channelQueue.countDocuments();
-	};
-
 	getAcceptedChannelCount = async () => {
 		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
 		return await acceptedChannelQueue.countDocuments();
 	};
 
-	getQueuedChannels = async () => {
-		const channelQueue = this.db.collection('channelQueue');
-		const queue = await channelQueue.find().toArray();
-		return queue;
-	};
-
-	removeFromQueue = async (channelId: string) => {
-		const channelQueue = this.db.collection('channelQueue');
-		await channelQueue.deleteOne({ id: channelId });
-	};
-
 	getChannels = async () => {
 		const channels = this.db.collection('channels');
-		const queue = await channels.find().toArray();
-		return queue;
+		return await channels.find().toArray();
 	};
 
 	getChannel = async (channelId: string) => {
@@ -266,6 +276,20 @@ class Database {
 			deletingIds.shift(); // keep one.
 			await collection.deleteMany({ _id: { $in: deletingIds } });
 		}
+	};
+
+	getChannelsCommentedOn = async (channelId: string) => {
+		// find videos the channel has commented on and get the videos channel ids
+		const videos = this.db.collection('videos');
+		const relations = await videos
+			.find({
+				'data.comments.author_id': channelId,
+			})
+			.project({ 'data.channel_id': 1, _id: 0 })
+			.toArray();
+
+		// get unique channel ids
+		return [...new Set(relations.map((relation) => relation.data.channel_id))];
 	};
 }
 

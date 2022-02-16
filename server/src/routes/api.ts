@@ -4,12 +4,21 @@ import { query, body } from 'express-validator';
 import validate from '../util/validate';
 
 import * as youtube from '../archiving/youtube';
-import * as connections from '../graphing/connections';
+import * as connections from '../connections/connections';
 import * as download from '../downloading/download';
+import * as queue from '../queue/queue';
 
 import db from '../archiving/database';
 
 const router = express.Router();
+
+router.get('/get-queued-channel', async (req, res) => {
+	const queuedChannel = await queue.getNextQueuedChannel();
+
+	if (!queuedChannel) throw new Error('no channels in queue');
+
+	return res.json(queuedChannel);
+});
 
 router.post(
 	'/accept-channel',
@@ -18,18 +27,20 @@ router.post(
 		const { channelId } = validate(req);
 
 		await db.acceptOrRejectChannel(channelId, true);
+		console.log('accepted channel', channelId);
 
 		return res.json({ success: true });
 	}
 );
 
 router.post(
-	'/filter-channel',
+	'/reject-channel',
 	body('channelId').isString(),
 	async (req, res) => {
 		const { channelId } = validate(req);
 
 		await db.acceptOrRejectChannel(channelId, false);
+		console.log('rejected channel', channelId);
 
 		return res.json({ success: true });
 	}

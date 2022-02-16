@@ -21,10 +21,31 @@
 				display: flex;
 				justify-content: space-between;
 
-				.accept-or-reject {
+				.filter-tools {
+					flex-shrink: 0;
+
 					display: flex;
-					justify-content: center;
-					gap: 1rem;
+					flex-direction: column;
+					align-items: end;
+					gap: 0.75rem;
+
+					margin-bottom: 1rem;
+
+					.commented-count {
+						.commented-count-number {
+							font-weight: bold;
+						}
+
+						> :not(.commented-count-number) {
+							opacity: 0.75;
+						}
+					}
+
+					.accept-or-reject {
+						display: flex;
+						justify-content: center;
+						gap: 1rem;
+					}
 				}
 			}
 

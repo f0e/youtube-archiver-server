@@ -4,6 +4,19 @@ import fs from 'fs-extra';
 type Relations = { [key: string]: string[] };
 type ChannelNames = { [key: string]: string };
 
+export async function getRelationsToAccepted(channelIds: string[]) {
+	const relationArray = await Promise.all(
+		channelIds.map((channelId) => db.getChannelsCommentedOn(channelId))
+	);
+
+	const relations: Relations = {};
+	for (const [i, channelId] of channelIds.entries()) {
+		relations[channelId] = relationArray[i];
+	}
+
+	return relations;
+}
+
 export async function getRelations() {
 	const relations: Relations = {};
 	const channelNames: ChannelNames = {};
@@ -82,4 +95,6 @@ export async function run() {
 			)
 			.join('\n')
 	);
+
+	console.log('exported most commented');
 }
