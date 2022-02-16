@@ -40,7 +40,7 @@ const Comment = ({ comment, replies }: CommentProps): ReactElement => {
 								'channel-avatar' + (!comment.parsed ? ' unparsed' : '')
 							}
 							src={comment.data.author_thumbnail}
-							alt={`${comment.data.author.author}'s avatar`}
+							alt={`${comment.data.author}'s avatar`}
 						/>
 					)}
 
