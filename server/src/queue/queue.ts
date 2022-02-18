@@ -5,27 +5,6 @@ import * as connections from '../connections/connections';
 
 let queue: any[] = [];
 
-async function sortQueue() {
-	const queuedChannels = await db.getQueuedChannels();
-	const queuedIds = queuedChannels.map((channel) => channel.id);
-
-	const relationsToAccepted = await connections.getRelationsToAccepted(
-		queuedIds
-	);
-
-	const mostCommentedChannelIds = Object.entries(relationsToAccepted)
-		.sort(
-			([aChannel, aCommented], [bChannel, bCommented]) =>
-				bCommented.length - aCommented.length
-		)
-		.map(([channelId, commented]) => ({
-			channelId,
-			commented: commented.length,
-		}));
-
-	return mostCommentedChannelIds;
-}
-
 export function onAcceptOrRejectChannel(channelId: string) {
 	const index = queue.findIndex((channel) => channel.channelId == channelId);
 	if (index == -1) return;
@@ -50,7 +29,15 @@ export async function getNextQueuedChannel() {
 export async function start() {
 	console.log('sorting queue');
 
-	queue = await sortQueue();
+	const minRelations = 2;
+	const queuedChannels = await db.getQueuedChannels(minRelations);
+
+	queue = queuedChannels
+		.sort((a, b) => b.relations.length - a.relations.length)
+		.map((channel) => ({
+			channelId: channel.id,
+			commented: channel.relations.length,
+		}));
 
 	console.log('sorted queue');
 }

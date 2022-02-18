@@ -9,6 +9,7 @@ import React, {
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import ConditionalLink from '../../components/ConditionalLink/ConditionalLink';
 import Loader from '../../components/Loader/Loader';
+import LoadingImage from '../../components/LoadingImage/LoadingImage';
 import ApiContext, { ApiState } from '../../context/ApiContext';
 import Channel from '../../types/channel';
 import Video from '../../types/video';
@@ -35,7 +36,7 @@ const Comment = ({ comment, replies }: CommentProps): ReactElement => {
 			<div className="comment-main">
 				<div className="comment-top">
 					{channelLink(
-						<img
+						<LoadingImage
 							className={
 								'channel-avatar' + (!comment.parsed ? ' unparsed' : '')
 							}
@@ -186,7 +187,7 @@ const VideoPlayer = ({ video, channel }: VideoPlayerProps): ReactElement => {
 				controls
 				onLoadedData={showVideo}
 				ref={videoRef}
-				// autoPlay
+				autoPlay
 			>
 				<source src={`get-video-stream?videoId=${video.id}`} type="video/mp4" />
 			</video>
@@ -212,7 +213,7 @@ const VideoPlayer = ({ video, channel }: VideoPlayerProps): ReactElement => {
 
 			<Link to={`/channel/${video.data.channel_id}`}>
 				<div className="video-channel">
-					<img
+					<LoadingImage
 						className="channel-avatar"
 						src={channel.data.authorThumbnails.at(-1).url}
 						alt={`${channel.data.author}'s avatar`}

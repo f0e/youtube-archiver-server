@@ -13,6 +13,7 @@
 .video {
 	.video-player {
 		width: 100%;
+		max-height: 80vh;
 		outline: none;
 
 		transition: opacity 0.15s;

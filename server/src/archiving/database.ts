@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 
 import { Collection, Db, MongoClient } from 'mongodb';
-import { acceptedChannelListener, clientQueueListener } from './archive';
+import { acceptedChannelListener, clientListener } from './archive';
 import { getVideoPath } from '../downloading/download';
 import * as queue from '../queue/queue';
 
@@ -82,6 +82,8 @@ class Database {
 				titles: [title],
 				data: videoData,
 			});
+
+			clientListener.emit('video');
 		}
 	};
 
@@ -124,7 +126,7 @@ class Database {
 
 		await channelQueue.insertOne(channel);
 
-		clientQueueListener.emit('channel', channel);
+		clientListener.emit('queue');
 	};
 
 	getQueuedChannelCount = async () => {
@@ -137,9 +139,14 @@ class Database {
 		return await channelQueue.findOne({ id: channelId });
 	};
 
-	getQueuedChannels = async () => {
+	getQueuedChannels = async (minRelations: number = 0) => {
 		const channelQueue = this.db.collection('channelQueue');
-		return await channelQueue.find().toArray();
+
+		const searchOpts: any = {};
+		if (minRelations > 0)
+			searchOpts[`relations.${minRelations - 1}`] = { $exists: true };
+
+		return await channelQueue.find(searchOpts).toArray();
 	};
 
 	removeFromQueue = async (channelId: string) => {
@@ -187,7 +194,7 @@ class Database {
 		if (destination == 'acceptNoDownload' || destination == 'accept')
 			acceptedChannelListener.emit('accepted');
 
-		clientQueueListener.emit('channel', channel);
+		clientListener.emit('queue');
 	};
 
 	filterChannel = async (channelId: string) => {
@@ -205,6 +212,11 @@ class Database {
 		await filteredChannels.deleteOne({ id: channelId });
 	};
 
+	getRejectedChannels = async () => {
+		const rejectedChannels = this.db.collection('rejectedChannels');
+		return await rejectedChannels.find().toArray();
+	};
+
 	onChannelParsed = async (channelId: string) => {
 		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
 		const channel = await acceptedChannelQueue.findOne({ id: channelId });
@@ -213,6 +225,8 @@ class Database {
 
 		await channels.insertOne(channel);
 		await acceptedChannelQueue.deleteOne({ id: channelId });
+
+		clientListener.emit('channel');
 	};
 
 	getNextChannel = async () => {
@@ -229,14 +243,19 @@ class Database {
 		return await acceptedChannelQueue.countDocuments();
 	};
 
+	getChannel = async (channelId: string) => {
+		const channels = this.db.collection('channels');
+		return await channels.findOne({ id: channelId });
+	};
+
 	getChannels = async () => {
 		const channels = this.db.collection('channels');
 		return await channels.find().toArray();
 	};
 
-	getChannel = async (channelId: string) => {
+	getChannelCount = async () => {
 		const channels = this.db.collection('channels');
-		return await channels.findOne({ id: channelId });
+		return await channels.countDocuments();
 	};
 
 	getVideo = async (videoId: string) => {
@@ -247,6 +266,16 @@ class Database {
 	getVideos = async () => {
 		const videos = this.db.collection('videos');
 		return await videos.find().toArray();
+	};
+
+	getVideoCount = async () => {
+		const videos = this.db.collection('videos');
+		return await videos.countDocuments();
+	};
+
+	getDownloadedVideoCount = async () => {
+		const videos = this.db.collection('videos');
+		return await videos.countDocuments({ downloaded: true });
 	};
 
 	isChannelQueued = async (channelId: string) => {
@@ -316,8 +345,54 @@ class Database {
 			.project({ 'data.channel_id': 1, _id: 0 })
 			.toArray();
 
-		// get unique channel ids
-		return [...new Set(relations.map((relation) => relation.data.channel_id))];
+		return [
+			...new Set( // get unique channel ids
+				relations
+					.filter((relation) => relation.data.channel_id != channelId) // remove self comments
+					.map((relation) => relation.data.channel_id)
+			),
+		];
+	};
+
+	setRelations = async (
+		channelId: string,
+		collectionName: string,
+		relations: string[]
+	) => {
+		const collection = this.db.collection(collectionName);
+		if (!collection) throw new Error(`invalid collection ${collectionName}`);
+
+		await collection.updateOne(
+			{ id: channelId },
+			{
+				$set: {
+					relations: relations,
+				},
+			}
+		);
+	};
+
+	addRelation = async (
+		channelId: string,
+		collectionName: string,
+		relation: string
+	) => {
+		const collection = this.db.collection(collectionName);
+		if (!collection) throw new Error(`invalid collection ${collectionName}`);
+
+		const channel = await collection.findOne({ id: channelId });
+		if (!channel) return false;
+
+		await collection.updateOne(
+			{ id: channelId },
+			{
+				$addToSet: {
+					relations: relation,
+				},
+			}
+		);
+
+		return true;
 	};
 }
 

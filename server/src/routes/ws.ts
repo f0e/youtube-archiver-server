@@ -4,22 +4,44 @@ import validate from '../util/validate';
 import WebSocket from 'ws';
 
 import db from '../archiving/database';
-import { clientQueueListener } from '../archiving/archive';
+import { clientListener } from '../archiving/archive';
 
 const router = express.Router();
 
-router.ws('/queueCount', async (ws: WebSocket, req: express.Request) => {
+router.ws('/queue-count', async (ws: WebSocket, req: express.Request) => {
 	const sendCount = async () => {
 		const count = await db.getQueuedChannelCount();
 		ws.send(JSON.stringify(count));
 	};
 
 	sendCount();
-	clientQueueListener.on('channel', sendCount);
+	clientListener.on('queue', sendCount);
 
-	ws.on('close', () =>
-		clientQueueListener.removeListener('channel', sendCount)
-	);
+	ws.on('close', () => clientListener.removeListener('queue', sendCount));
+});
+
+router.ws('/video-count', async (ws: WebSocket, req: express.Request) => {
+	const sendCount = async () => {
+		const count = await db.getDownloadedVideoCount();
+		ws.send(JSON.stringify(count));
+	};
+
+	sendCount();
+	clientListener.on('video', sendCount);
+
+	ws.on('close', () => clientListener.removeListener('video', sendCount));
+});
+
+router.ws('/channel-count', async (ws: WebSocket, req: express.Request) => {
+	const sendCount = async () => {
+		const count = await db.getChannelCount();
+		ws.send(JSON.stringify(count));
+	};
+
+	sendCount();
+	clientListener.on('channel', sendCount);
+
+	ws.on('close', () => clientListener.removeListener('channel', sendCount));
 });
 
 export default router;

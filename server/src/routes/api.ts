@@ -131,4 +131,14 @@ router.get('/get-connections', async (req, res) => {
 	return res.json({ relations, channelNames });
 });
 
+router.get('/get-count', async (req, res) => {
+	const videos = await db.getVideoCount();
+	const channels = await db.getChannelCount();
+
+	return res.json({
+		videos,
+		channels,
+	});
+});
+
 export default router;

@@ -1,7 +1,14 @@
-import React, { ReactElement, useContext, useEffect, useState } from 'react';
+import React, {
+	ReactElement,
+	useContext,
+	useEffect,
+	useRef,
+	useState,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/hooks';
+import CountUp from 'react-countup';
 import { ChannelCard } from '../../components/ChannelCard/ChannelCard';
 import Loader from '../../components/Loader/Loader';
 import { VideoCard } from '../../components/VideoCard/VideoCard';
@@ -137,6 +144,71 @@ const Search = ({ channels: allChannels }: SearchProps): ReactElement => {
 	);
 };
 
+const DownloadedCount = (): ReactElement => {
+	const [videoCount, setVideoCount] = useState({ from: 0, to: 0 });
+	const [channelCount, setChannelCount] = useState({ from: 0, to: 0 });
+
+	const videoSocket = useRef<WebSocket | null>(null);
+	const channelSocket = useRef<WebSocket | null>(null);
+
+	useEffect(() => {
+		videoSocket.current = new WebSocket('ws://localhost:3001/ws/video-count');
+		videoSocket.current.onmessage = async (e: MessageEvent) => {
+			const count = JSON.parse(e.data);
+
+			setVideoCount((cur) => ({
+				from: cur.to,
+				to: count,
+			}));
+		};
+
+		channelSocket.current = new WebSocket(
+			'ws://localhost:3001/ws/channel-count'
+		);
+		channelSocket.current.onmessage = async (e: MessageEvent) => {
+			const count = JSON.parse(e.data);
+
+			setChannelCount((cur) => ({
+				from: cur.to,
+				to: count,
+			}));
+		};
+
+		const videoCurrent = videoSocket.current;
+		const channelCurrent = channelSocket.current;
+		return () => {
+			videoCurrent.close();
+			channelCurrent.close();
+		};
+	}, []);
+
+	return (
+		<div>
+			<div className="count">
+				<span className="count-number">
+					<CountUp
+						start={channelCount.from}
+						end={channelCount.to}
+						duration={0.25}
+					/>{' '}
+				</span>
+				<span>channels archived</span>
+			</div>
+
+			<div className="count">
+				<span className="count-number">
+					<CountUp
+						start={videoCount.from}
+						end={videoCount.to}
+						duration={0.25}
+					/>{' '}
+				</span>
+				<span>videos archived</span>
+			</div>
+		</div>
+	);
+};
+
 const Browse = (): ReactElement => {
 	const [channels, setChannels] = useState(new ApiState());
 
@@ -151,6 +223,7 @@ const Browse = (): ReactElement => {
 	return (
 		<main className="browse-page">
 			<h1 style={{ marginBottom: '0.5rem' }}>browse</h1>
+			<DownloadedCount />
 			<br />
 
 			{channels.loading ? (

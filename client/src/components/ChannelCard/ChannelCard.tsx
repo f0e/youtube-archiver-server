@@ -5,6 +5,7 @@ import ApiContext from '../../context/ApiContext';
 import Channel from '../../types/channel';
 import { VideoCard } from '../VideoCard/VideoCard';
 import ConditionalLink from '../ConditionalLink/ConditionalLink';
+import LoadingImage from '../LoadingImage/LoadingImage';
 
 import './ChannelCard.scss';
 
@@ -87,7 +88,7 @@ export const ChannelCard = ({
 		<Card className="channel-card">
 			<div className="channel-header">
 				{channelLink(
-					<img
+					<LoadingImage
 						className="channel-avatar"
 						src={channel.data.authorThumbnails.at(-1).url}
 						alt={`${channel.data.author}'s avatar`}
@@ -108,11 +109,9 @@ export const ChannelCard = ({
 
 						<div className="filter-tools">
 							{commentedCount && (
-								<div className="commented-count">
+								<div className="count">
 									<span>commented on </span>
-									<span className="commented-count-number">
-										{commentedCount}
-									</span>
+									<span className="count-number">{commentedCount}</span>
 									<span> channels</span>
 								</div>
 							)}

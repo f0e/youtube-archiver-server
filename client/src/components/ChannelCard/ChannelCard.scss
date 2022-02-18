@@ -33,16 +33,6 @@
 
 					margin-bottom: 1rem;
 
-					.commented-count {
-						.commented-count-number {
-							font-weight: bold;
-						}
-
-						> :not(.commented-count-number) {
-							opacity: 0.75;
-						}
-					}
-
 					.accept-buttons {
 						display: flex;
 						flex-wrap: wrap;

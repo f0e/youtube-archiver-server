@@ -37,6 +37,16 @@ main {
 	display: none;
 }
 
+.count {
+	.count-number {
+		font-weight: bold;
+	}
+
+	> :not(.count-number) {
+		opacity: 0.75;
+	}
+}
+
 // override default styles
 h1,
 h2,

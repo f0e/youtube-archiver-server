@@ -18,11 +18,7 @@ const QueueCount = (): ReactElement => {
 	const ws = useRef<WebSocket | null>(null);
 
 	useEffect(() => {
-		ws.current = new WebSocket('ws://localhost:3001/ws/queueCount');
-
-		// ws.current.onopen = () => console.log('opened websocket');
-		// ws.current.onclose = () => console.log('closed websocket');
-
+		ws.current = new WebSocket('ws://localhost:3001/ws/queue-count');
 		ws.current.onmessage = async (e: MessageEvent) => {
 			const count = JSON.parse(e.data);
 

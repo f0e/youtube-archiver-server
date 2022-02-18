@@ -1,12 +1,13 @@
 import * as youtube from './youtube';
 import * as filters from './filter';
+import * as connections from '../connections/connections';
 
 import db from './database';
 import EventEmitter from 'events';
 import sleep from '../util/sleep';
 
 // event emitters for websockets
-export const clientQueueListener = new EventEmitter();
+export const clientListener = new EventEmitter();
 export const acceptedChannelListener = new EventEmitter();
 
 async function addChannel(channelId: string, isFiltered: boolean = false) {
@@ -61,6 +62,24 @@ async function addChannel(channelId: string, isFiltered: boolean = false) {
 	}
 }
 
+async function addRelation(channelId: string, commentedChannelId: string) {
+	// don't know where the channel is, so just try each collection (bad)
+	const collectionNames = [
+		'acceptedChannelQueue',
+		'channelQueue',
+		'channels',
+		'filteredChannels',
+		'rejectedChannels',
+	];
+
+	for (const collectionName of collectionNames) {
+		if (await db.addRelation(channelId, collectionName, commentedChannelId))
+			return;
+	}
+
+	console.log("didn't add relation (commenter couldn't be found?");
+}
+
 async function parseChannelVideos(channel: any) {
 	console.log(`parsing ${channel.data.author}'s videos`);
 
@@ -96,6 +115,10 @@ async function parseChannelVideos(channel: any) {
 				// await Promise.all(commenters.map((commenter) => addChannel(commenter)));
 				for (const commenter of commenters) {
 					await addChannel(commenter);
+
+					if (commenter != channel.id) {
+						await addRelation(commenter, channel.id);
+					}
 				}
 
 				await db.addVideo(videoId, videoData);
@@ -194,6 +217,23 @@ async function reFilter() {
 		}
 		console.log('done');
 	}
+}
+
+async function setRelations(collection: string, channelIds: string[]) {
+	console.log('getting relations');
+
+	const relations = await connections.getRelationsToAccepted(channelIds);
+
+	for (const [i, channelId] of channelIds.entries()) {
+		if (i % 1000 == 0) {
+			console.log(`${i + 1}/${channelIds.length}`);
+		}
+
+		const relatedIds = relations[channelId];
+		await db.setRelations(channelId, collection, relatedIds);
+	}
+
+	console.log('updated relations');
 }
 
 export async function start() {

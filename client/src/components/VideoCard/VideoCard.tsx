@@ -1,5 +1,6 @@
 import React, { ReactElement } from 'react';
 import ConditionalLink from '../ConditionalLink/ConditionalLink';
+import LoadingImage from '../LoadingImage/LoadingImage';
 
 import './VideoCard.scss';
 
@@ -36,7 +37,7 @@ export const VideoCard = ({
 					}
 				>
 					<div className="video-thumbnail">
-						<img
+						<LoadingImage
 							src={basicVideo.videoThumbnails.at(-1).url}
 							alt={`thumbnail for video '${basicVideo.title}' by ${basicVideo.author}`}
 						/>
