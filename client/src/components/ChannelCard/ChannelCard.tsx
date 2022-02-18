@@ -9,71 +9,16 @@ import LoadingImage from '../LoadingImage/LoadingImage';
 
 import './ChannelCard.scss';
 
-interface AcceptOrRejectProps {
-	channelId: string;
-	onAcceptReject?: () => void;
-}
-
-type ChannelDestination = 'accept' | 'reject' | 'acceptNoDownload';
-
-const AcceptOrReject = ({
-	channelId,
-	onAcceptReject,
-}: AcceptOrRejectProps): ReactElement => {
-	const [moving, setMoving] = useState<null | ChannelDestination>(null);
-
-	const Api = useContext(ApiContext);
-
-	const acceptOrReject = async (destination: ChannelDestination) => {
-		setMoving(destination);
-
-		try {
-			await Api.post('move-channel', {
-				channelId,
-				destination,
-			});
-
-			onAcceptReject && onAcceptReject();
-		} catch (e) {
-			setMoving(null);
-		}
-	};
-
-	return (
-		<div className="accept-buttons">
-			<LoadingButton
-				onClick={(e: any) => acceptOrReject('accept')}
-				label="accept"
-				loading={moving == 'accept'}
-			/>
-			<LoadingButton
-				onClick={(e: any) => acceptOrReject('acceptNoDownload')}
-				variant="outline"
-				label="accept (no downloads)"
-				loading={moving == 'acceptNoDownload'}
-			/>
-			<LoadingButton
-				onClick={(e: any) => acceptOrReject('reject')}
-				color="red"
-				label="reject"
-				loading={moving == 'reject'}
-			/>
-		</div>
-	);
-};
-
 interface ChannelCardProps {
 	channel: Channel;
 	parsed: boolean;
-	onAcceptReject?: () => void;
-	commentedCount?: number;
+	channelTools?: ReactElement;
 }
 
 export const ChannelCard = ({
 	channel,
 	parsed,
-	onAcceptReject,
-	commentedCount,
+	channelTools,
 }: ChannelCardProps): ReactElement => {
 	const channelLink = (children: any) =>
 		parsed ? (
@@ -96,34 +41,17 @@ export const ChannelCard = ({
 				)}
 
 				<div className="channel-info">
-					<div className="top-info">
-						<div>
-							{channelLink(
-								<div className="channel-name">{channel.data.author}</div>
-							)}
+					<div className="channel-name-and-subs">
+						{channelLink(
+							<div className="channel-name">{channel.data.author}</div>
+						)}
 
-							<div className="channel-subscriptions">
-								{channel.data.subscriberText}
-							</div>
-						</div>
-
-						<div className="filter-tools">
-							{commentedCount && (
-								<div className="count">
-									<span>commented on </span>
-									<span className="count-number">{commentedCount}</span>
-									<span> channels</span>
-								</div>
-							)}
-
-							{onAcceptReject && (
-								<AcceptOrReject
-									channelId={channel.id}
-									onAcceptReject={onAcceptReject}
-								/>
-							)}
+						<div className="channel-subscriptions">
+							{channel.data.subscriberText}
 						</div>
 					</div>
+
+					<div className="channel-tools">{channelTools}</div>
 				</div>
 			</div>
 

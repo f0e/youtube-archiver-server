@@ -13,6 +13,7 @@ import LoadingImage from '../../components/LoadingImage/LoadingImage';
 import ApiContext, { ApiState } from '../../context/ApiContext';
 import Channel from '../../types/channel';
 import Video from '../../types/video';
+import dayjs from 'dayjs';
 
 import './Watch.scss';
 
@@ -179,6 +180,14 @@ const VideoPlayer = ({ video, channel }: VideoPlayerProps): ReactElement => {
 		videoRef.current.classList.remove('loading-video');
 	};
 
+	const uploadDate = dayjs(video.data.upload_date, 'YYYY-MM-DD')
+		.toDate()
+		.toLocaleDateString('en-US', {
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric',
+		});
+
 	return (
 		<div className="video">
 			<video
@@ -197,7 +206,7 @@ const VideoPlayer = ({ video, channel }: VideoPlayerProps): ReactElement => {
 					<h1 style={{ marginBottom: '0.5rem' }}>{video.data.title}</h1>
 
 					<div className="views-and-date">
-						{basicVideo.viewCountText} • {`${basicVideo.publishedText}`}
+						{basicVideo.viewCountText} • {`${uploadDate}`}
 					</div>
 				</div>
 

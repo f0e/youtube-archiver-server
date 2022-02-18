@@ -33,7 +33,7 @@ async function addChannel(channelId: string, isFiltered: boolean = false) {
 		// filter by channel
 		if (filters.filterChannel(channelData)) return false;
 
-		let videos = await youtube.getVideos(channelId);
+		const videos = await youtube.getVideos(channelId);
 
 		// filter by videos
 		if (filters.filterChannelVideos(videos)) return false;
@@ -77,7 +77,9 @@ async function addRelation(channelId: string, commentedChannelId: string) {
 			return;
 	}
 
-	console.log("didn't add relation (commenter couldn't be found?");
+	console.log(
+		`didn't add relation (commenter couldn't be found?) ${channelId} commenting on ${commentedChannelId}`
+	);
 }
 
 async function parseChannelVideos(channel: any) {
@@ -235,6 +237,8 @@ async function setRelations(collection: string, channelIds: string[]) {
 
 	console.log('updated relations');
 }
+
+import fs from 'fs-extra';
 
 export async function start() {
 	// await fix();

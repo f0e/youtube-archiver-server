@@ -19,6 +19,7 @@ import Connections from './pages/Connections/Connections';
 import Browse from './pages/Browse/Browse';
 import Watch from './pages/Watch/Watch';
 import ChannelPage from './pages/ChannelPage/ChannelPage';
+import AddChannel from './pages/AddChannel/AddChannel';
 
 import './styles/variables.scss';
 import './App.scss';
@@ -73,6 +74,10 @@ const App = (): ReactElement => {
 		{
 			path: '/',
 			element: <Home />,
+		},
+		{
+			path: '/add',
+			element: <AddChannel />,
 		},
 		{
 			path: '/filter',

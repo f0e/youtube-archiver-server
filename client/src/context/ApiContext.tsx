@@ -5,7 +5,11 @@ import axios, { AxiosRequestConfig } from 'axios';
 export class ApiState {
 	data: any = null;
 	loading: boolean = true;
-	error: Error | null = null;
+	error: any | null = null;
+
+	constructor(startLoading: boolean = true) {
+		this.loading = startLoading;
+	}
 }
 
 type ApiCallParameters = {
@@ -16,20 +20,23 @@ export interface ApiContextInterface {
 	get: (
 		url: string,
 		parameters?: ApiCallParameters,
-		options?: AxiosRequestConfig<any>
+		options?: AxiosRequestConfig<any>,
+		dontNotifyErrors?: boolean
 	) => Promise<any>;
 
 	getState: (
 		set: React.Dispatch<React.SetStateAction<any>>,
 		url: string,
 		parameters?: ApiCallParameters,
-		options?: AxiosRequestConfig<any>
+		options?: AxiosRequestConfig<any>,
+		dontNotifyErrors?: boolean
 	) => Promise<any>;
 
 	post: (
 		url: string,
 		body?: ApiCallParameters,
-		options?: AxiosRequestConfig<any>
+		options?: AxiosRequestConfig<any>,
+		dontNotifyErrors?: boolean
 	) => Promise<any>;
 }
 
@@ -51,7 +58,8 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 	const get = async (
 		url: string,
 		parameters?: ApiCallParameters,
-		options?: AxiosRequestConfig<any>
+		options?: AxiosRequestConfig<any>,
+		dontNotifyErrors?: boolean
 	): Promise<any> => {
 		try {
 			const res = await axios.get(url, {
@@ -62,7 +70,8 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 			return res.data;
 		} catch (e: any) {
 			const errorMessage = e.response?.data?.message;
-			onError(errorMessage);
+
+			if (!dontNotifyErrors) onError(errorMessage);
 
 			throw errorMessage;
 		}
@@ -72,35 +81,44 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 		set: React.Dispatch<React.SetStateAction<any>>,
 		url: string,
 		parameters?: ApiCallParameters,
-		options?: AxiosRequestConfig<any>
+		options?: AxiosRequestConfig<any>,
+		dontNotifyErrors?: boolean
 	): Promise<any> => {
 		try {
+			set({
+				data: null,
+				loading: true,
+				error: null,
+			});
+
 			const res = await axios.get(url, {
 				params: parameters,
 				...options,
 			});
 
-			set((cur: any) => ({
-				...cur,
+			set({
 				data: res.data,
 				loading: false,
-			}));
+				error: null,
+			});
 		} catch (e: any) {
 			const errorMessage = e.response?.data?.message;
-			onError(errorMessage);
 
-			set((cur: any) => ({
-				...cur,
-				error: e,
+			if (!dontNotifyErrors) onError(errorMessage);
+
+			set({
+				data: null,
 				loading: false,
-			}));
+				error: e,
+			});
 		}
 	};
 
 	const post = async (
 		url: string,
 		parameters?: ApiCallParameters,
-		options?: AxiosRequestConfig<any>
+		options?: AxiosRequestConfig<any>,
+		dontNotifyErrors?: boolean
 	): Promise<any> => {
 		try {
 			const res = await axios.post(url, parameters, options);
@@ -108,7 +126,8 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 			return res.data.data;
 		} catch (e: any) {
 			const errorMessage = e.response?.data?.message;
-			onError(errorMessage);
+
+			if (!dontNotifyErrors) onError(errorMessage);
 
 			throw errorMessage;
 		}

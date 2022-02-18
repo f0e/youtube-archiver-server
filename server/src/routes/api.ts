@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
 import express from 'express';
 import { query, body } from 'express-validator';
+import mm from 'music-metadata';
 import validate from '../util/validate';
 
 import * as youtube from '../archiving/youtube';
@@ -11,6 +12,76 @@ import * as queue from '../queue/queue';
 import db from '../archiving/database';
 
 const router = express.Router();
+
+router.get(
+	'/get-channel-info',
+	query('channel').isString(),
+	async (req, res) => {
+		const { channel } = validate(req);
+
+		let supposedChannelId = channel;
+
+		const urlTypes = ['/channel/', '/user/', '/c/'];
+		for (const urlType of urlTypes) {
+			if (channel.includes(urlType)) {
+				supposedChannelId = channel.split(urlType)[1].split('/')[0];
+				break;
+			}
+		}
+
+		try {
+			const channelData = await youtube.parseChannel(supposedChannelId);
+			const channelId = channelData.authorId;
+
+			let tempChannel;
+			if ((tempChannel = await db.getQueuedChannel(channelId)))
+				return res.json({
+					exists: 'queued',
+					channel: tempChannel,
+				});
+
+			if ((tempChannel = await db.getAcceptedChannel(channelId)))
+				return res.json({
+					exists: 'accepted',
+					channel: tempChannel,
+				});
+
+			if ((tempChannel = await db.getRejectedChannel(channelId)))
+				return res.json({
+					exists: 'rejected',
+					channel: tempChannel,
+				});
+
+			if ((tempChannel = await db.getFilteredChannel(channelId)))
+				return res.json({
+					exists: 'filtered',
+					channel: tempChannel,
+				});
+
+			if ((tempChannel = await db.getChannel(channelId)))
+				return res.json({
+					exists: 'added',
+					channel: tempChannel,
+				});
+
+			const videos = await youtube.getVideos(channelId);
+
+			const channelObj = {
+				id: channelId,
+				data: channelData,
+				videos: videos,
+			};
+
+			return res.json({
+				channel: channelObj,
+			});
+		} catch (e) {
+			return res.json({
+				error: 'channel not found',
+			});
+		}
+	}
+);
 
 router.get('/get-queued-channel', async (req, res) => {
 	const queuedChannel = await queue.getNextQueuedChannel();
@@ -30,6 +101,40 @@ router.post(
 		await db.moveChannel(channelId, destination);
 
 		console.log(`moved channel (${destination})`);
+
+		return res.json({ success: true });
+	}
+);
+
+router.post(
+	'/add-channel',
+	body('channelId').isString(),
+	body('destination').isString(),
+	async (req, res) => {
+		const { channelId, destination } = validate(req);
+
+		if (await db.isChannelQueued(channelId))
+			throw new Error('channel is queued');
+
+		if (await db.isChannelAccepted(channelId))
+			throw new Error('channel is accepted');
+
+		if (await db.isChannelRejected(channelId))
+			throw new Error('channel is rejected');
+
+		if (await db.isChannelParsed(channelId))
+			throw new Error('channel is parsed');
+
+		if (await db.isChannelFiltered(channelId))
+			throw new Error('channel is filtered');
+
+		const channelData = await youtube.parseChannel(channelId);
+		const videos = await youtube.getVideos(channelId);
+
+		await db.queueChannel(channelId, channelData, videos);
+		await db.moveChannel(channelId, destination);
+
+		console.log(`added channel ${channelData.author} to ${destination}`);
 
 		return res.json({ success: true });
 	}
@@ -82,6 +187,27 @@ router.get('/get-video-info', query('videoId').isString(), async (req, res) => {
 
 	return res.json({ video, channel });
 });
+
+router.get(
+	'/get-video-thumbnail',
+	query('videoId').isString(),
+	async (req, res) => {
+		const { videoId } = validate(req);
+
+		const video = await db.getVideo(videoId);
+		if (!video.downloaded) throw new Error('video not downloaded');
+
+		const filePath = download.getVideoPath(video, true);
+		if (!fs.existsSync(filePath)) throw new Error('video not found');
+
+		const metadata = await mm.parseFile(filePath);
+
+		const picture = metadata.common.picture;
+
+		res.set({ 'Content-Type': 'image/png' });
+		return res.send(picture[0].data);
+	}
+);
 
 router.get(
 	'/get-video-stream',

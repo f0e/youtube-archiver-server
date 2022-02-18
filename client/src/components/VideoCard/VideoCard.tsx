@@ -38,7 +38,11 @@ export const VideoCard = ({
 				>
 					<div className="video-thumbnail">
 						<LoadingImage
-							src={basicVideo.videoThumbnails.at(-1).url}
+							src={
+								basicVideo.downloaded
+									? `http://localhost:3000/get-video-thumbnail?videoId=${basicVideo.videoId}`
+									: basicVideo.videoThumbnails.at(-1).url
+							}
 							alt={`thumbnail for video '${basicVideo.title}' by ${basicVideo.author}`}
 						/>
 

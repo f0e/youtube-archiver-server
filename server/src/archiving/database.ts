@@ -202,6 +202,11 @@ class Database {
 		await filteredChannels.insertOne({ id: channelId });
 	};
 
+	getFilteredChannel = async (channelId: string) => {
+		const filteredChannels = this.db.collection('filteredChannels');
+		return await filteredChannels.findOne({ id: channelId });
+	};
+
 	getFilteredChannels = async () => {
 		const filteredChannels = this.db.collection('filteredChannels');
 		return await filteredChannels.find().toArray();
@@ -210,6 +215,11 @@ class Database {
 	removeFromFilter = async (channelId: string) => {
 		const filteredChannels = this.db.collection('filteredChannels');
 		await filteredChannels.deleteOne({ id: channelId });
+	};
+
+	getRejectedChannel = async (channelId: string) => {
+		const rejectedChannels = this.db.collection('rejectedChannels');
+		return await rejectedChannels.findOne({ id: channelId });
 	};
 
 	getRejectedChannels = async () => {
@@ -236,6 +246,16 @@ class Database {
 
 		if (!firstChannel) return null;
 		else return firstChannel;
+	};
+
+	getAcceptedChannel = async (channelId: string) => {
+		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
+		return await acceptedChannelQueue.findOne({ id: channelId });
+	};
+
+	getAcceptedChannels = async () => {
+		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
+		return await acceptedChannelQueue.find().toArray();
 	};
 
 	getAcceptedChannelCount = async () => {
@@ -284,8 +304,8 @@ class Database {
 	};
 
 	isChannelAccepted = async (channelId: string) => {
-		const acceptedChannelQueue = this.db.collection('acceptedChannelQueue');
-		return await acceptedChannelQueue.findOne({ id: channelId });
+		const channel = await this.getAcceptedChannel(channelId);
+		return channel != null;
 	};
 
 	isChannelRejected = async (channelId: string) => {
@@ -393,6 +413,27 @@ class Database {
 		);
 
 		return true;
+	};
+
+	getUsedSongs = async () => {
+		const videos = this.db.collection('videos');
+
+		let songs = await videos
+			.find()
+			.project({
+				id: 1,
+				'data.track': 1,
+				'data.artist': 1,
+				'data.duration': 1,
+				_id: 0,
+			})
+			.toArray();
+
+		songs = songs.filter(
+			(song) => song.data.artist && song.data.duration < 60 * 2
+		);
+
+		return songs;
 	};
 }
 

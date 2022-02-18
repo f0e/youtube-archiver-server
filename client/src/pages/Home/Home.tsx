@@ -21,12 +21,18 @@ const Home = (): ReactElement => {
 					<Button>browse</Button>
 				</Link>
 
+				<Link to="/add">
+					<Button>add</Button>
+				</Link>
+
 				<Link to="/filter">
 					<Button>filter</Button>
 				</Link>
 
 				<Link to="/connections">
-					<Button>connections</Button>
+					<Button variant="outline" color="dark">
+						connections
+					</Button>
 				</Link>
 			</div>
 		</main>

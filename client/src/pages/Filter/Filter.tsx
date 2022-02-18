@@ -6,6 +6,7 @@ import React, {
 	useState,
 } from 'react';
 import CountUp from 'react-countup';
+import AcceptOrReject from '../../components/AcceptOrReject/AcceptOrReject';
 import { ChannelCard } from '../../components/ChannelCard/ChannelCard';
 import ApiContext from '../../context/ApiContext';
 import Channel from '../../types/channel';
@@ -72,8 +73,20 @@ const Filter = (): ReactElement => {
 						key={channel.channel.id}
 						parsed={false}
 						channel={channel.channel}
-						commentedCount={channel.commented}
-						onAcceptReject={onAcceptReject}
+						channelTools={
+							<>
+								<div className="count">
+									<span>commented on </span>
+									<span className="count-number">{channel.commented}</span>
+									<span> channels</span>
+								</div>
+
+								<AcceptOrReject
+									channelId={channel.channel.id}
+									onAcceptReject={onAcceptReject}
+								/>
+							</>
+						}
 					/>
 				))}
 			</div>

@@ -19,6 +19,7 @@
 		"@testing-library/react": "^11.1.0",
 		"@testing-library/user-event": "^12.1.10",
 		"axios": "^0.24.0",
+		"dayjs": "^1.10.7",
 		"framer-motion": "^6.2.6",
 		"fuse.js": "^6.5.3",
 		"react": "^17.0.2",

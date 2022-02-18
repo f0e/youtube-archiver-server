@@ -33,6 +33,12 @@ interface SearchBarProps {
 }
 
 const SearchBar = ({ items, onSearch, maxResults }: SearchBarProps) => {
+	const form = useForm({
+		initialValues: {
+			query: '',
+		},
+	});
+
 	const fuse = new Fuse(items, {
 		keys: ['name'],
 	});
@@ -45,12 +51,6 @@ const SearchBar = ({ items, onSearch, maxResults }: SearchBarProps) => {
 
 		onSearch(results);
 	};
-
-	const form = useForm({
-		initialValues: {
-			query: '',
-		},
-	});
 
 	return (
 		<form onSubmit={form.onSubmit(search)}>
