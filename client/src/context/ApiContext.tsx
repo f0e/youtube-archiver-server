@@ -62,7 +62,6 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 			return res.data;
 		} catch (e: any) {
 			const errorMessage = e.response?.data?.message;
-
 			onError(errorMessage);
 
 			throw errorMessage;
@@ -75,21 +74,27 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 		parameters?: ApiCallParameters,
 		options?: AxiosRequestConfig<any>
 	): Promise<any> => {
-		return await get(url, parameters, options)
-			.then((data) =>
-				set((cur: any) => ({
-					...cur,
-					data,
-					loading: false,
-				}))
-			)
-			.catch((error) =>
-				set((cur: any) => ({
-					...cur,
-					error,
-					loading: false,
-				}))
-			);
+		try {
+			const res = await axios.get(url, {
+				params: parameters,
+				...options,
+			});
+
+			set((cur: any) => ({
+				...cur,
+				data: res.data,
+				loading: false,
+			}));
+		} catch (e: any) {
+			const errorMessage = e.response?.data?.message;
+			onError(errorMessage);
+
+			set((cur: any) => ({
+				...cur,
+				error: e,
+				loading: false,
+			}));
+		}
 	};
 
 	const post = async (
@@ -103,7 +108,6 @@ export const ApiStore: FunctionComponent = ({ children }) => {
 			return res.data.data;
 		} catch (e: any) {
 			const errorMessage = e.response?.data?.message;
-
 			onError(errorMessage);
 
 			throw errorMessage;

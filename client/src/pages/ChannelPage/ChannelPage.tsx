@@ -1,9 +1,9 @@
 import React, { ReactElement, useContext, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Button } from '@mantine/core';
 import { ChannelCard } from '../../components/ChannelCard/ChannelCard';
 import Loader from '../../components/Loader/Loader';
 import ApiContext, { ApiState } from '../../context/ApiContext';
-import Channel from '../../types/channel';
 
 import './ChannelPage.scss';
 
@@ -11,6 +11,8 @@ const ChannelPage = (): ReactElement => {
 	const [channel, setChannel] = useState(new ApiState());
 
 	const { channelId } = useParams();
+
+	const navigate = useNavigate();
 
 	const Api = useContext(ApiContext);
 
@@ -25,7 +27,10 @@ const ChannelPage = (): ReactElement => {
 			{channel.loading ? (
 				<Loader message="loading" />
 			) : !channel.data || channel.error ? (
-				<div>failed to load channel</div>
+				<>
+					<h2>failed to load channel</h2>
+					<Button onClick={() => navigate(-1)}>back</Button>
+				</>
 			) : (
 				<ChannelCard parsed={true} channel={channel.data} />
 			)}

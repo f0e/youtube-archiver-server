@@ -266,7 +266,7 @@ const Watch = (): ReactElement => {
 		<main className="watch-page">
 			{videoInfo.loading ? (
 				<Loader message="loading" />
-			) : !videoInfo ? (
+			) : !videoInfo.data ? (
 				<>
 					<h1>failed to load video</h1>
 					<Button onClick={() => navigate(-1)}>back</Button>

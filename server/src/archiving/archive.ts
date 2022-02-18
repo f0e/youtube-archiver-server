@@ -19,13 +19,13 @@ async function addChannel(channelId: string, isFiltered: boolean = false) {
 	}
 
 	const add = async () => {
-		const commentedChannels = await db.getChannelsCommentedOn(channelId);
-		const commented = commentedChannels.length;
+		// const commentedChannels = await db.getChannelsCommentedOn(channelId);
+		// const commented = commentedChannels.length;
 
-		if (filters.filterChannelComments(commented)) {
-			console.log('only commented on', commented, 'channels, filtering');
-			return false;
-		}
+		// if (filters.filterChannelComments(commented)) {
+		// 	console.log('only commented on', commented, 'channels, filtering');
+		// 	return false;
+		// }
 
 		const channelData = await youtube.parseChannel(channelId);
 
@@ -54,7 +54,7 @@ async function addChannel(channelId: string, isFiltered: boolean = false) {
 
 			return added;
 		} catch (e) {
-			console.log(e.message);
+			console.log(e);
 			console.log('failed to parse channel, retrying in 5 seconds');
 			await sleep(5000);
 		}
@@ -107,7 +107,7 @@ async function parseChannelVideos(channel: any) {
 				);
 
 				if (!isPrivate) {
-					console.log(e.message);
+					console.log(e);
 					console.log('failed to parse video, retrying in 5 seconds');
 					await sleep(5000);
 
