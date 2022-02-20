@@ -5,6 +5,7 @@ import React, {
 	useRef,
 	useState,
 } from 'react';
+import { useDocumentTitle } from '@mantine/hooks';
 import CountUp from 'react-countup';
 import AcceptOrReject from '../../components/AcceptOrReject/AcceptOrReject';
 import { ChannelCard } from '../../components/ChannelCard/ChannelCard';
@@ -47,6 +48,8 @@ const Filter = (): ReactElement => {
 	const [channels, setChannels] = useState<any[]>([]);
 
 	const Api = useContext(ApiContext);
+
+	useDocumentTitle('bhop archive | filter');
 
 	const getNewChannel = async () => {
 		const channel = await Api.get('/get-queued-channel');

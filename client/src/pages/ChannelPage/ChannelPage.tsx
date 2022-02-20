@@ -1,6 +1,7 @@
 import React, { ReactElement, useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@mantine/core';
+import { useDocumentTitle } from '@mantine/hooks';
 import { ChannelCard } from '../../components/ChannelCard/ChannelCard';
 import Loader from '../../components/Loader/Loader';
 import ApiContext, { ApiState } from '../../context/ApiContext';
@@ -15,6 +16,12 @@ const ChannelPage = (): ReactElement => {
 	const navigate = useNavigate();
 
 	const Api = useContext(ApiContext);
+
+	useDocumentTitle(
+		!channel.data
+			? 'bhop archive'
+			: `bhop archive | ${channel.data.data.author}`
+	);
 
 	useEffect(() => {
 		Api.getState(setChannel, '/get-channel', {

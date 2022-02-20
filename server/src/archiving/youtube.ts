@@ -62,6 +62,7 @@ export async function parseVideo(videoId: string) {
 
 export async function parseChannel(channelId: string) {
 	return await ytch.getChannelInfo({
+		channelIdType: 0,
 		channelId,
 	});
 }
@@ -74,6 +75,7 @@ export async function getVideos(channelId: string) {
 		let newVideos;
 		if (!continuation) {
 			newVideos = await ytch.getChannelVideos({
+				channelIdType: 0,
 				channelId,
 			});
 		} else {

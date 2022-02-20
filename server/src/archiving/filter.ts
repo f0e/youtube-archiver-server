@@ -11,6 +11,10 @@ const filters = {
 	minVideoLength: 15,
 	maxVideoLength: 60 * 5,
 	// minViews: 100,
+
+	// comments
+	maxSubscribersForComments: 20000,
+	maxComments: 500,
 };
 
 export function filterChannelComments(commented: number) {
@@ -37,5 +41,12 @@ export function filterVideoBasic(video: any) {
 		video.lengthSeconds < filters.minVideoLength ||
 		video.lengthSeconds > filters.maxVideoLength
 		// || video.viewCount < filters.minViews
+	);
+}
+
+export function filterComments(channel: any, comments: any[]) {
+	return (
+		channel.subscriberCount > filters.maxSubscribersForComments ||
+		comments.length > filters.maxComments
 	);
 }

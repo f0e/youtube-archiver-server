@@ -1,4 +1,3 @@
-import { Button } from '@mantine/core';
 import React, {
 	ReactElement,
 	useContext,
@@ -7,15 +6,21 @@ import React, {
 	useState,
 } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Button } from '@mantine/core';
+import { useDocumentTitle } from '@mantine/hooks';
+import { BarChartIcon } from '@radix-ui/react-icons';
 import ConditionalLink from '../../components/ConditionalLink/ConditionalLink';
 import Loader from '../../components/Loader/Loader';
 import LoadingImage from '../../components/LoadingImage/LoadingImage';
 import ApiContext, { ApiState } from '../../context/ApiContext';
 import Channel from '../../types/channel';
 import Video from '../../types/video';
-import dayjs from 'dayjs';
 
 import './Watch.scss';
+
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+dayjs.extend(relativeTime);
 
 interface CommentProps {
 	comment: any;
@@ -32,6 +37,8 @@ const Comment = ({ comment, replies }: CommentProps): ReactElement => {
 		</ConditionalLink>
 	);
 
+	const commentTimeAgo = dayjs.unix(comment.data.timestamp).fromNow();
+
 	return (
 		<div key={comment.data.id} className="comment">
 			<div className="comment-main">
@@ -46,18 +53,22 @@ const Comment = ({ comment, replies }: CommentProps): ReactElement => {
 						/>
 					)}
 
-					<div className="comment-name-and-text">
-						{channelLink(
-							<div
-								className={
-									'channel-name' +
-									(comment.data.author_is_uploader ? ' uploader' : '') +
-									(!comment.parsed ? ' unparsed' : '')
-								}
-							>
-								{comment.data.author}
-							</div>
-						)}
+					<div>
+						<div className="channel-name-and-date">
+							{channelLink(
+								<div
+									className={
+										'channel-name' +
+										(comment.data.author_is_uploader ? ' uploader' : '') +
+										(!comment.parsed ? ' unparsed' : '')
+									}
+								>
+									{comment.data.author}
+								</div>
+							)}
+
+							<div className="comment-date">{commentTimeAgo}</div>
+						</div>
 
 						<div className="comment-text">{comment.data.text}</div>
 					</div>
@@ -97,11 +108,15 @@ interface VideoCommentsProps {
 }
 
 const VideoComments = ({ comments }: VideoCommentsProps): ReactElement => {
-	const [parsedCommenters, setParsedCommenters] = useState(new ApiState());
+	const [parsedCommenters, setParsedCommenters] = useState(
+		new ApiState(comments.length != 0)
+	);
 
 	const Api = useContext(ApiContext);
 
 	useEffect(() => {
+		if (comments.length == 0) return;
+
 		Api.getState(setParsedCommenters, 'check-channels-parsed', {
 			channelIds: comments.map((comment) => comment.author_id),
 		});
@@ -175,6 +190,24 @@ const VideoPlayer = ({ video, channel }: VideoPlayerProps): ReactElement => {
 
 	const videoRef = useRef<HTMLVideoElement>(null);
 
+	useEffect(() => {
+		loadVolume();
+	}, [videoRef]);
+
+	const loadVolume = () => {
+		if (!videoRef.current) return;
+
+		const volume = localStorage.getItem('volume');
+		if (!volume) return;
+
+		videoRef.current.volume = parseFloat(volume);
+	};
+
+	const storeVolume = () => {
+		if (!videoRef.current) return;
+		localStorage.setItem('volume', videoRef.current.volume.toString());
+	};
+
 	const showVideo = () => {
 		if (!videoRef.current) return;
 		videoRef.current.classList.remove('loading-video');
@@ -196,7 +229,8 @@ const VideoPlayer = ({ video, channel }: VideoPlayerProps): ReactElement => {
 				controls
 				onLoadedData={showVideo}
 				ref={videoRef}
-				autoPlay
+				onVolumeChange={storeVolume}
+				// autoPlay
 			>
 				<source src={`get-video-stream?videoId=${video.id}`} type="video/mp4" />
 			</video>
@@ -211,10 +245,14 @@ const VideoPlayer = ({ video, channel }: VideoPlayerProps): ReactElement => {
 				</div>
 
 				<div className="likes">
-					<span className="like-number">
-						{video.data.like_count ? video.data.like_count : 0}
-					</span>
-					<span> likes</span>
+					{!video.data.like_count ? (
+						<div>likes hidden</div>
+					) : (
+						<>
+							<span className="like-number">{video.data.like_count}</span>
+							<span> likes</span>
+						</>
+					)}
 				</div>
 			</div>
 
@@ -230,7 +268,11 @@ const VideoPlayer = ({ video, channel }: VideoPlayerProps): ReactElement => {
 
 					<div className="channel-name-and-subs">
 						<div className="channel-name">{video.data.channel}</div>
-						<div className="channel-subs">{channel.data.subscriberText}</div>
+						<div className="channel-subs">
+							{channel.data.subscriberCount == 0
+								? '0 or hidden subscribers'
+								: channel.data.subscriberText}
+						</div>
 					</div>
 				</div>
 			</Link>
@@ -239,25 +281,46 @@ const VideoPlayer = ({ video, channel }: VideoPlayerProps): ReactElement => {
 				<div className="video-description">{video.data.description}</div>
 			)}
 
+			<div className="video-metadata">
+				<div className="video-category">{video.data.categories.join(', ')}</div>
+
+				{video.data.track && (
+					<a
+						className="video-song"
+						href={`https://www.youtube.com/results?search_query=${video.data.artist} - ${video.data.song}`}
+					>
+						<BarChartIcon className="song-icon" />
+
+						<div className="song-title">
+							{video.data.artist} - {video.data.track}
+						</div>
+					</a>
+				)}
+			</div>
+
 			<div className="spacer" />
 
-			<h2>
-				comments
-				<span className="comment-count"> - {video.data.comments.length}</span>
-			</h2>
+			{video.data.comments.length == 0 ? (
+				<h2>no comments / disabled</h2>
+			) : (
+				<>
+					<h2>
+						comments
+						<span className="comment-count">
+							{' '}
+							- {video.data.comments.length}
+						</span>
+					</h2>
 
-			<VideoComments comments={video.data.comments} />
+					<VideoComments comments={video.data.comments} />
+				</>
+			)}
 		</div>
 	);
 };
 
 const Watch = (): ReactElement => {
-	const [videoInfo, setVideoInfo] = useState<any>({
-		video: null,
-		channel: null,
-		loading: true,
-		error: false,
-	});
+	const [videoInfo, setVideoInfo] = useState<any>(new ApiState());
 
 	const navigate = useNavigate();
 
@@ -265,6 +328,12 @@ const Watch = (): ReactElement => {
 	const videoId = searchParams.get('v');
 
 	const Api = useContext(ApiContext);
+
+	useDocumentTitle(
+		!videoInfo.data
+			? 'bhop archive'
+			: `bhop archive | ${videoInfo.data.channel.data.author} - ${videoInfo.data.video.data.title}`
+	);
 
 	useEffect(() => {
 		Api.getState(setVideoInfo, 'get-video-info', {

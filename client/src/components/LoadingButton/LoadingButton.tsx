@@ -11,6 +11,7 @@ import './LoadingButton.scss';
 interface LoadingButtonProps {
 	onClick?: (e: any) => void;
 	label: string;
+	type?: 'submit' | 'button' | 'reset';
 	variant?: ButtonVariant;
 	color?: MantineColor;
 	style?: Record<string, unknown>;
@@ -21,6 +22,7 @@ interface LoadingButtonProps {
 const LoadingButton = ({
 	onClick,
 	label,
+	type,
 	variant,
 	color,
 	style,
@@ -30,7 +32,7 @@ const LoadingButton = ({
 	return (
 		<div className={`loading-button ${loading ? 'loading' : ''} ${className}`}>
 			<Button
-				type="submit"
+				type={type}
 				onClick={onClick}
 				disabled={loading}
 				variant={variant}

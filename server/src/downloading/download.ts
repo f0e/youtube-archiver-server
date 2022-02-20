@@ -29,9 +29,9 @@ export async function updateVideosDownloaded() {
 }
 
 export async function downloadAllVideos() {
-	// update already downloaded videos
-	await updateVideosDownloaded();
-	console.log('updated downloaded videos');
+	// // update already downloaded videos
+	// await updateVideosDownloaded();
+	// console.log('updated downloaded videos');
 
 	const videos = await db.getVideos();
 
@@ -56,6 +56,16 @@ export async function downloadAllVideos() {
 
 				break;
 			} catch (e) {
+				if (
+					e.message &&
+					e.message.includes(
+						'ERROR: unable to download video data: [Errno 2] No such file or directory'
+					)
+				) {
+					await fs.appendFile('failed downloads.txt', video.id + '\n');
+					break;
+				}
+
 				console.log(e);
 				console.log('failed to download, retrying in 5 seconds');
 				await sleep(5000);

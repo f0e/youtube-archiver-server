@@ -13,8 +13,7 @@
 			"cwd": "${workspaceFolder}/server",
 			"skipFiles": [
 				"${workspaceFolder}/node_modules/**/*.js",
-				"<node_internals>/**/*.js",
-				"**/*async_hook*.js"
+				"<node_internals>/**"
 			]
 		}
 	]

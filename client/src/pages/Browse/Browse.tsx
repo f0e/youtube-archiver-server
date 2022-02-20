@@ -7,7 +7,7 @@ import React, {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, TextInput } from '@mantine/core';
-import { useForm } from '@mantine/hooks';
+import { useDocumentTitle, useForm } from '@mantine/hooks';
 import CountUp from 'react-countup';
 import { ChannelCard } from '../../components/ChannelCard/ChannelCard';
 import Loader from '../../components/Loader/Loader';
@@ -215,6 +215,8 @@ const Browse = (): ReactElement => {
 	const navigate = useNavigate();
 
 	const Api = useContext(ApiContext);
+
+	useDocumentTitle('bhop archive | browse');
 
 	useEffect(() => {
 		Api.getState(setChannels, '/get-channels');

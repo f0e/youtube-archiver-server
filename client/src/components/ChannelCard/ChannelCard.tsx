@@ -47,7 +47,9 @@ export const ChannelCard = ({
 						)}
 
 						<div className="channel-subscriptions">
-							{channel.data.subscriberText}
+							{channel.data.subscriberCount == 0
+								? '0 or hidden subscribers'
+								: channel.data.subscriberText}
 						</div>
 					</div>
 

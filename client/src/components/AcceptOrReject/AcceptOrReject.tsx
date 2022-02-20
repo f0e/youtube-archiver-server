@@ -9,28 +9,30 @@ interface AcceptOrRejectProps {
 	onAcceptReject?: () => void;
 }
 
-type AcceptChannelDestination = 'accept' | 'reject' | 'acceptNoDownload';
+export type ChannelDestination = 'accept' | 'reject' | 'acceptNoDownload';
 
 const AcceptOrReject = ({
 	channelId,
 	onAcceptReject,
 }: AcceptOrRejectProps): ReactElement => {
-	const [moving, setMoving] = useState<null | AcceptChannelDestination>(null);
+	const [destination, setDestination] = useState<null | ChannelDestination>(
+		null
+	);
 
 	const Api = useContext(ApiContext);
 
-	const acceptOrReject = async (destination: AcceptChannelDestination) => {
-		setMoving(destination);
+	const acceptOrReject = async (newDestination: ChannelDestination) => {
+		setDestination(destination);
 
 		try {
 			await Api.post('move-channel', {
 				channelId,
-				destination,
+				destination: newDestination,
 			});
 
 			onAcceptReject && onAcceptReject();
 		} catch (e) {
-			setMoving(null);
+			setDestination(null);
 		}
 	};
 
@@ -39,19 +41,19 @@ const AcceptOrReject = ({
 			<LoadingButton
 				onClick={(e: any) => acceptOrReject('accept')}
 				label="accept"
-				loading={moving == 'accept'}
+				loading={destination == 'accept'}
 			/>
 			<LoadingButton
 				onClick={(e: any) => acceptOrReject('acceptNoDownload')}
 				variant="outline"
 				label="accept (no downloads)"
-				loading={moving == 'acceptNoDownload'}
+				loading={destination == 'acceptNoDownload'}
 			/>
 			<LoadingButton
 				onClick={(e: any) => acceptOrReject('reject')}
 				color="red"
 				label="reject"
-				loading={moving == 'reject'}
+				loading={destination == 'reject'}
 			/>
 		</div>
 	);

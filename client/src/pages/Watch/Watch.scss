@@ -47,8 +47,9 @@
 	}
 
 	.video-channel {
-		display: flex;
+		display: inline-flex;
 		gap: 0.75rem;
+		min-width: 10rem;
 
 		margin-bottom: 1rem;
 
@@ -76,10 +77,30 @@
 		background-color: var(--card-background);
 		border: 1px solid var(--card-border);
 
+		border-radius: 0.25rem;
+
 		padding: 1rem;
 		margin-bottom: 1rem;
 
+		white-space: pre-wrap;
 		overflow-wrap: break-word;
+	}
+
+	.video-metadata {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+
+		.video-category {
+		}
+
+		.video-song {
+			display: flex;
+			align-items: center;
+			gap: 0.35rem;
+
+			opacity: 0.75;
+		}
 	}
 
 	.comment-count {
@@ -117,7 +138,11 @@
 						border-radius: 0.25rem;
 					}
 
-					.comment-name-and-text {
+					.channel-name-and-date {
+						display: flex;
+						align-items: center;
+						gap: 0.35rem;
+
 						.channel-name {
 							display: inline;
 
@@ -131,6 +156,11 @@
 
 								border-radius: 0.25rem;
 							}
+						}
+
+						.comment-date {
+							font-size: 0.9em;
+							opacity: 0.75;
 						}
 
 						.comment-text {

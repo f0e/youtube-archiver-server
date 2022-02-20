@@ -55,12 +55,22 @@ app.use((err: any, req: any, res: any, next: any) => {
 	const dev = true;
 
 	const errStatus = err.status || statusCodes.INTERNAL_SERVER_ERROR;
-	const errMessage = dev
+	let errMessage = dev
 		? err.message || err
 		: 'an unexpected error has occurred, please try again later';
 
-	console.log('[api error]', err.message);
+	console.log('[api error]', req.url, errMessage);
 	if (err.trace) console.log(err.trace);
+
+	// format express-validator errors (stupid)
+	if (Array.isArray(errMessage)) {
+		errMessage = errMessage[1]
+			.map(
+				(e: any) =>
+					`${e.msg}: ${e.location} param '${e.param}' has value ${e.value}`
+			)
+			.join(', ');
+	}
 
 	res.status(errStatus).json({
 		error: true,

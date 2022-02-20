@@ -1,89 +1,109 @@
-import React, { ReactElement, useContext, useState } from 'react';
-import { TextInput } from '@mantine/core';
-import { useForm } from '@mantine/hooks';
+import React, { ReactElement, useContext, useEffect, useState } from 'react';
+import { Button, Switch, Textarea, TextInput } from '@mantine/core';
+import { useDocumentTitle, useForm } from '@mantine/hooks';
 import ApiContext, { ApiState } from '../../context/ApiContext';
-
-import './AddChannel.scss';
 import Loader from '../../components/Loader/Loader';
 import { ChannelCard } from '../../components/ChannelCard/ChannelCard';
 import LoadingButton from '../../components/LoadingButton/LoadingButton';
-import AcceptOrReject from '../../components/AcceptOrReject/AcceptOrReject';
+import AcceptOrReject, {
+	ChannelDestination,
+} from '../../components/AcceptOrReject/AcceptOrReject';
 
-interface SearchChannelBarProps {
-	onSubmit: () => void;
-	setChannel: React.Dispatch<React.SetStateAction<any>>;
+import './AddChannel.scss';
+
+interface SearchChannelsResultProps {
+	channelUrl: string;
+	channelsLeft: number;
+	addingMultiple: boolean;
+	getNextChannel: () => void;
 }
 
-const SearchChannelBar = ({
-	onSubmit,
-	setChannel,
-}: SearchChannelBarProps): ReactElement => {
-	const Api = useContext(ApiContext);
-
-	const form = useForm({
-		initialValues: {
-			channelUrl: '',
-		},
-	});
-
-	const searchChannel = async (values: typeof form['values']) => {
-		onSubmit();
-
-		await Api.getState(setChannel, '/get-channel-info', {
-			channel: values.channelUrl,
-		});
-	};
-	return (
-		<form onSubmit={form.onSubmit(searchChannel)}>
-			<TextInput
-				placeholder="channel url"
-				{...form.getInputProps('channelUrl')}
-			/>
-		</form>
-	);
-};
-
-interface SearchChannelResultProps {
-	channel: any;
-	onAdd: () => void;
-}
-
-const SearchChannelResult = ({
-	channel,
-	onAdd,
-}: SearchChannelResultProps): ReactElement => {
-	const [destination, setDestination] = useState<null | AddChannelDestination>(
+const SearchChannelsResult = ({
+	channelUrl,
+	channelsLeft,
+	addingMultiple,
+	getNextChannel,
+}: SearchChannelsResultProps): ReactElement => {
+	const [destination, setDestination] = useState<null | ChannelDestination>(
 		null
 	);
+
+	const [channel, setChannel] = useState<any>({
+		loading: true,
+		data: null,
+	});
+
+	const [lastChannelExists, setLastChannelExists] = useState(false);
+
+	const loadChannel = async () => {
+		try {
+			setChannel({
+				data: null,
+				loading: true,
+			});
+
+			const data = await Api.get('/get-channel-info', {
+				channel: channelUrl,
+			});
+
+			const existsCheck = () => {
+				if (!addingMultiple) return false;
+
+				const filteredExists = ['added', 'accepted', 'rejected', 'filtered'];
+				if (filteredExists.includes(data.exists)) {
+					setLastChannelExists(data.exists);
+					return true;
+				}
+
+				setLastChannelExists(false);
+				return false;
+			};
+
+			if (existsCheck()) {
+				getNextChannel();
+			} else {
+				setChannel({
+					data,
+					loading: false,
+				});
+			}
+		} catch (e: any) {
+			getNextChannel();
+		}
+	};
+
+	useEffect(() => {
+		loadChannel();
+	}, [channelUrl]);
 
 	const Api = useContext(ApiContext);
 
 	const onAcceptReject = async () => {
-		onAdd();
+		getNextChannel();
 	};
 
-	const addChannel = async (destination: AddChannelDestination) => {
+	const addChannel = async (destination: ChannelDestination) => {
 		setDestination(destination);
 
 		try {
 			await Api.post('/add-channel', {
-				channelId: channel.channel.id,
+				channelId: channel.data.channel.id,
 				destination,
 			});
 
-			onAdd();
 			setDestination(null);
+			getNextChannel();
 		} catch (e) {
 			setDestination(null);
 		}
 	};
 
 	const getChannelTools = () => {
-		switch (channel.exists) {
+		switch (channel.data.exists) {
 			case 'queued': {
 				return (
 					<AcceptOrReject
-						channelId={channel.channel.id}
+						channelId={channel.data.channel.id}
 						onAcceptReject={onAcceptReject}
 					/>
 				);
@@ -102,6 +122,19 @@ const SearchChannelResult = ({
 							label="add (no downloads)"
 							loading={destination == 'acceptNoDownload'}
 						/>
+						<LoadingButton
+							onClick={(e: any) => addChannel('reject')}
+							color="red"
+							label="reject"
+							loading={destination == 'reject'}
+						/>
+						<Button
+							variant="outline"
+							onClick={(e: any) => getNextChannel()}
+							color="red"
+						>
+							don't add
+						</Button>
 					</div>
 				);
 			}
@@ -112,55 +145,164 @@ const SearchChannelResult = ({
 
 	return (
 		<>
-			{channel.exists && <h2>channel already {channel.exists}</h2>}
+			{channelsLeft > 0 && (
+				<div className="last-channel-exists">
+					{channelsLeft} channel{channelsLeft == 1 ? '' : 's'} left
+				</div>
+			)}
 
-			<ChannelCard
-				channel={channel.channel}
-				parsed={channel.exists == 'added'}
-				channelTools={getChannelTools()}
-			/>
+			{channel.loading || lastChannelExists ? (
+				<>
+					<Loader message="loading channel" />
+
+					{lastChannelExists && (
+						<span className="last-channel-exists">
+							last channel was already {lastChannelExists}
+						</span>
+					)}
+				</>
+			) : (
+				<>
+					<br />
+
+					{channel.data.exists && (
+						<h2>channel already {channel.data.exists}</h2>
+					)}
+
+					<ChannelCard
+						channel={channel.data.channel}
+						parsed={channel.data.exists == 'added'}
+						channelTools={getChannelTools()}
+					/>
+				</>
+			)}
 		</>
 	);
 };
 
-type AddChannelDestination = 'accept' | 'acceptNoDownload';
+interface AddSingleChannelProps {
+	searchChannels: (channels: string[]) => void;
+}
+
+const AddSingleChannel = ({
+	searchChannels,
+}: AddSingleChannelProps): ReactElement => {
+	const form = useForm({
+		initialValues: {
+			channelUrl: '',
+		},
+	});
+
+	const onSubmit = async (values: typeof form['values']) => {
+		searchChannels([values.channelUrl]);
+	};
+
+	return (
+		<form className="channel-add-form" onSubmit={form.onSubmit(onSubmit)}>
+			<TextInput
+				placeholder="channel url"
+				{...form.getInputProps('channelUrl')}
+			/>
+
+			<Button type="submit">search</Button>
+		</form>
+	);
+};
+
+interface AddMultipleChannelsProps {
+	searchChannels: (channels: string[]) => void;
+}
+
+const AddMultipleChannels = ({
+	searchChannels,
+}: AddMultipleChannelsProps): ReactElement => {
+	const Api = useContext(ApiContext);
+
+	const form = useForm({
+		initialValues: {
+			channelUrls: '',
+		},
+	});
+
+	const onSubmit = async (values: typeof form['values']) => {
+		searchChannels(values.channelUrls.split('\n'));
+	};
+
+	return (
+		<form className="channel-add-form" onSubmit={form.onSubmit(onSubmit)}>
+			<Textarea
+				className="channel-add-multiple"
+				placeholder="channels (one per line)"
+				{...form.getInputProps('channelUrls')}
+			/>
+
+			<Button type="submit">search</Button>
+		</form>
+	);
+};
+
+const AddChannelForm = (): ReactElement => {
+	const [channelUrls, setChannelUrls] = useState<string[]>([]);
+	const [multipleChannels, setMultipleChannels] = useState(false);
+	const [channelIndex, setChannelIndex] = useState(0);
+	const [searched, setSearched] = useState(false);
+
+	const searchChannels = (newChannelUrls: string[]) => {
+		setSearched(true);
+		setChannelUrls(newChannelUrls);
+		setChannelIndex(0);
+	};
+
+	const getNextChannel = () => {
+		setChannelIndex((cur) => cur + 1);
+	};
+
+	const channelsLeft = channelUrls.length - (channelIndex + 1);
+
+	return (
+		<>
+			<Switch
+				label="multiple channels"
+				onChange={(e) => setMultipleChannels(e.currentTarget.checked)}
+			/>
+
+			<br />
+
+			{!multipleChannels ? (
+				<AddSingleChannel searchChannels={searchChannels} />
+			) : (
+				<AddMultipleChannels searchChannels={searchChannels} />
+			)}
+
+			<br />
+
+			{searched && (
+				<>
+					{multipleChannels && channelsLeft == 0 ? (
+						<h2>finished adding channels</h2>
+					) : (
+						<SearchChannelsResult
+							channelUrl={channelUrls[channelIndex]}
+							channelsLeft={channelsLeft}
+							addingMultiple={multipleChannels}
+							getNextChannel={getNextChannel}
+						/>
+					)}
+				</>
+			)}
+		</>
+	);
+};
 
 const AddChannel = (): ReactElement => {
-	const [channel, setChannel] = useState(new ApiState(false));
-	const [submitted, setSubmitted] = useState(false);
-	const [added, setAdded] = useState(false);
-
-	const onSubmit = () => {
-		setAdded(false);
-		setSubmitted(true);
-	};
+	useDocumentTitle('bhop archive | add');
 
 	return (
 		<main className="add-channel-page">
 			<h1 style={{ marginBottom: '0.5rem' }}>add channel</h1>
 			<br />
 
-			<SearchChannelBar onSubmit={onSubmit} setChannel={setChannel} />
-			<br />
-
-			{submitted && (
-				<>
-					{channel.loading ? (
-						<Loader message="loading channel" />
-					) : channel.error ? (
-						<>
-							<h2>failed to load channel</h2>
-						</>
-					) : added ? (
-						<h2>channel added</h2>
-					) : (
-						<SearchChannelResult
-							channel={channel.data}
-							onAdd={() => setAdded(true)}
-						/>
-					)}
-				</>
-			)}
+			<AddChannelForm />
 		</main>
 	);
 };

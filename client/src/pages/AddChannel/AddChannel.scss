@@ -11,3 +11,22 @@
 
 	max-width: 20rem;
 }
+
+.channel-add-form {
+	display: flex;
+	gap: 0.5rem;
+
+	> :first-child {
+		flex-grow: 1;
+	}
+
+	.channel-add-multiple {
+		textarea {
+			height: 15rem;
+		}
+	}
+}
+
+.last-channel-exists {
+	opacity: 0.75;
+}

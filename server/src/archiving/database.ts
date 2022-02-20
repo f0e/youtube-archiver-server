@@ -5,27 +5,6 @@ import { acceptedChannelListener, clientListener } from './archive';
 import { getVideoPath } from '../downloading/download';
 import * as queue from '../queue/queue';
 
-const updateHistoryArray = async (
-	collection: Collection,
-	document: any,
-	id: string,
-	field: string,
-	value: any
-) => {
-	const array = document[field];
-
-	if (
-		array.length == 0 ||
-		JSON.stringify(array.at(-1)) != JSON.stringify(value)
-	) {
-		const updateQuery = { $set: {} };
-		(updateQuery.$set as any)[field] = array.concat(value); // bit poo
-		await collection.updateOne({ id }, updateQuery);
-
-		console.log(`updated ${field} array (${array}), added ${value}`);
-	}
-};
-
 class Database {
 	client: MongoClient;
 	db: Db;
@@ -64,23 +43,33 @@ class Database {
 	// 	}
 	// };
 
-	addVideo = async (videoId: string, videoData: any) => {
+	addVideo = async (
+		videoId: string,
+		videoData: any,
+		parsedCommenters: boolean
+	) => {
 		const videos = this.db.collection('videos');
 
 		const title = videoData.title;
 
 		const video = await videos.findOne({ id: videoId });
 		if (video) {
-			console.log(
-				`channel '${title}' already exists, updating names and avatars`
-			);
+			console.log(`video '${title}' already exists, updating titles`);
 
-			await updateHistoryArray(videos, video, videoId, 'titles', title);
+			await videos.updateOne(
+				{ id: videoId },
+				{
+					$addToSet: {
+						titles: title,
+					},
+				}
+			);
 		} else {
 			await videos.insertOne({
 				id: videoId,
 				titles: [title],
 				data: videoData,
+				parsedCommenters,
 			});
 
 			clientListener.emit('video');
@@ -434,6 +423,26 @@ class Database {
 		);
 
 		return songs;
+	};
+
+	getMostCommentedVideos = async () => {
+		const videos = this.db.collection('videos');
+
+		const comments = await videos
+			.find()
+			.project({
+				id: 1,
+				'data.title': 1,
+				'data.comment_count': 1,
+				_id: 0,
+			})
+			.toArray();
+
+		const sortedComments = comments.sort(
+			(a, b) => b.data.comment_count - a.data.comment_count
+		);
+
+		return sortedComments;
 	};
 }
 

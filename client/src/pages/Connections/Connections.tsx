@@ -1,4 +1,5 @@
 import React, { ReactElement, useContext, useEffect, useState } from 'react';
+import { useDocumentTitle } from '@mantine/hooks';
 import ApiContext from '../../context/ApiContext';
 import './Connections.scss';
 
@@ -6,6 +7,8 @@ const Connections = (): ReactElement => {
 	const [graphData, setGraphData] = useState<any>();
 
 	const Api = useContext(ApiContext);
+
+	useDocumentTitle('bhop archive | connections');
 
 	useEffect(() => {
 		Api.get('/get-connections').then((data) => {

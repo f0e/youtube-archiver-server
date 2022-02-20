@@ -6,7 +6,13 @@
 	box-sizing: border-box;
 }
 
-.App {
+body {
+	margin: 0;
+	padding: 0;
+	min-height: 100vh;
+}
+
+body {
 	background-color: var(--background-colour);
 	color: var(--text-colour);
 
@@ -14,15 +20,7 @@
 
 	text-align: left;
 
-	overflow-x: hidden;
-
 	transition: color 0.1s, background-color 0.2s;
-}
-
-body {
-	margin: 0;
-	padding: 0;
-	min-height: 100vh;
 }
 
 main {

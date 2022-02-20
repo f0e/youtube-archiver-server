@@ -4,14 +4,14 @@ import { Loader as MantineLoader } from '@mantine/core';
 import './Loader.scss';
 
 interface LoaderProps {
-	message: string;
+	message?: string;
 }
 
 const Loader = ({ message }: LoaderProps): ReactElement => {
 	return (
 		<div className="loader">
 			<MantineLoader />
-			<span>{message}</span>
+			{message && <span>{message}</span>}
 		</div>
 	);
 };

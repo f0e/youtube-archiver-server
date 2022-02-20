@@ -1,17 +1,13 @@
 import React, { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
-import {
-	Button,
-	AppShell,
-	Navbar,
-	Header,
-	Burger,
-	MediaQuery,
-} from '@mantine/core';
+import { Button } from '@mantine/core';
+import { useDocumentTitle } from '@mantine/hooks';
 
 import './Home.scss';
 
 const Home = (): ReactElement => {
+	useDocumentTitle('bhop archive');
+
 	return (
 		<main className="home-page">
 			<h1>bhop archive</h1>

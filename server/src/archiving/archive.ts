@@ -40,6 +40,7 @@ async function addChannel(channelId: string, isFiltered: boolean = false) {
 
 		// channel not filtered, store it.
 		await db.queueChannel(channelId, channelData, videos);
+
 		console.log(`parsed ${channelData.author}`);
 
 		return true;
@@ -112,18 +113,25 @@ async function parseChannelVideos(channel: any) {
 					video.videoId
 				);
 
-				console.log('parsing commenters');
+				const parsingCommenters = !filters.filterComments(channel, commenters);
 
-				// await Promise.all(commenters.map((commenter) => addChannel(commenter)));
-				for (const commenter of commenters) {
-					await addChannel(commenter);
+				if (parsingCommenters) {
+					console.log(`parsing ${commenters.length} commenters`);
 
-					if (commenter != channel.id) {
-						await addRelation(commenter, channel.id);
+					for (const [i, commenter] of commenters.entries()) {
+						console.log(`commenter ${i + 1}/${commenters.length}`);
+
+						await addChannel(commenter);
+
+						if (commenter != channel.id) {
+							await addRelation(commenter, channel.id);
+						}
 					}
+				} else {
+					console.log(`not parsing commenters (${commenters.length} comments)`);
 				}
 
-				await db.addVideo(videoId, videoData);
+				await db.addVideo(videoId, videoData, parsingCommenters);
 
 				console.log('done');
 			} catch (e) {
@@ -239,10 +247,71 @@ async function setRelations(collection: string, channelIds: string[]) {
 }
 
 import fs from 'fs-extra';
+import path from 'path';
 
 export async function start() {
+	// const videos = await db.getMostCommentedVideos();
+	// await fs.writeFile(
+	// 	'most commented.txt',
+	// 	videos
+	// 		.map(
+	// 			(video, i) =>
+	// 				`#${i + 1} | ${video.data.title} - ${
+	// 					video.data.comment_count
+	// 				} comments | https://youtu.be/${video.id}`
+	// 		)
+	// 		.join('\n')
+	// );
+
 	// await fix();
 	// await reFilter();
+
+	// const oldArchiveFolder = 'F:/youtube/yt video archiver/youtube';
+	// for (const channel of await fs.readdir(oldArchiveFolder)) {
+	// 	const channelPath = path.join(oldArchiveFolder, channel);
+
+	// 	for (const video of await fs.readdir(channelPath)) {
+	// 		const { name, ext } = path.parse(video);
+	// 		if (ext != '.mp4') continue;
+
+	// 		const infoPath = path.join(channelPath, `${name}.info.json`);
+	// 		if (!fs.existsSync(infoPath)) continue;
+
+	// 		const videoInfo = await fs.readJSON(infoPath);
+
+	// 		const channelId = videoInfo.channel_id;
+
+	// 		let channel = await db.getChannel(channelId);
+	// 		if (!channel) channel = await db.getAcceptedChannel(channelId);
+	// 		if (!channel) channel = await db.getRejectedChannel(channelId);
+	// 		if (!channel) channel = await db.getQueuedChannel(channelId);
+
+	// 		if (!channel) {
+	// 			const channelData = await youtube.parseChannel(channelId);
+	// 			const videos = await youtube.getVideos(channelId);
+	// 			console.log(
+	// 				`dont have channel ${channelData.author} https://youtube.com/channel/${channelId}`
+	// 			);
+	// 		} else {
+	// 			const archivedVideo = channel.videos.find(
+	// 				(video: any) => video.id == videoInfo.id
+	// 			);
+	// 			if (!archivedVideo) {
+	// 				console.log(
+	// 					`video not archived (channel ${channel.data.author}, video: ${videoInfo.title})`
+	// 				);
+	// 			}
+	// 		}
+
+	// 		// const channelData = await youtube.parseChannel(channelId);
+	// 		// const videos = await youtube.getVideos(channelId);
+
+	// 		// // channel not filtered, store it.
+	// 		// await db.queueChannel(channelId, channelData, videos);
+	// 	}
+	// }
+
+	// process.exit();
 
 	if (!(await db.isChannelParsed(process.env.START_CHANNEL))) {
 		await addChannel(process.env.START_CHANNEL);

@@ -1,8 +1,46 @@
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useContext, useEffect, useState } from 'react';
 import ConditionalLink from '../ConditionalLink/ConditionalLink';
 import LoadingImage from '../LoadingImage/LoadingImage';
+import ApiContext, { ApiState } from '../../context/ApiContext';
+import Loader from '../Loader/Loader';
 
 import './VideoCard.scss';
+
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+dayjs.extend(relativeTime);
+
+interface VideoCardDateProps {
+	basicVideo: any;
+}
+
+const VideoCardDate = ({ basicVideo }: VideoCardDateProps) => {
+	const [date, setDate] = useState<string | null>(null);
+
+	const Api = useContext(ApiContext);
+
+	const loadDate = async () => {
+		const newDate = await Api.get('/get-video-upload-date', {
+			videoId: basicVideo.videoId,
+		});
+
+		setDate(newDate);
+	};
+
+	useEffect(() => {
+		loadDate();
+	}, []);
+
+	return (
+		<>
+			{!date ? (
+				<span className="outdated-date">{basicVideo.publishedText}</span>
+			) : (
+				dayjs(date, 'YYYY-MM-DD').fromNow()
+			)}
+		</>
+	);
+};
 
 interface VideoCardProps {
 	basicVideo: any;
@@ -55,7 +93,8 @@ export const VideoCard = ({
 							<div className="video-author"> {basicVideo.author}</div>
 						)}
 						<div className="views-and-date">
-							{basicVideo.viewCountText} • {basicVideo.publishedText}
+							{basicVideo.viewCountText} •{' '}
+							<VideoCardDate basicVideo={basicVideo} />
 						</div>
 					</div>
 				</div>

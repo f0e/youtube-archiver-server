@@ -13,73 +13,85 @@ import db from '../archiving/database';
 
 const router = express.Router();
 
+async function getChannelExists(channelId: string) {
+	let channel;
+	if ((channel = await db.getQueuedChannel(channelId)))
+		return {
+			exists: 'queued',
+			channel,
+		};
+
+	if ((channel = await db.getAcceptedChannel(channelId)))
+		return {
+			exists: 'accepted',
+			channel,
+		};
+
+	if ((channel = await db.getRejectedChannel(channelId)))
+		return {
+			exists: 'rejected',
+			channel,
+		};
+
+	if ((channel = await db.getFilteredChannel(channelId)))
+		return {
+			exists: 'filtered',
+			channel,
+		};
+
+	if ((channel = await db.getChannel(channelId)))
+		return {
+			exists: 'added',
+			channel,
+		};
+
+	return false;
+}
+
+async function getChannelInfo(channelData: any) {
+	const channelId = channelData.authorId;
+
+	// check if the channel already exists
+	const exists = await getChannelExists(channelId);
+	if (exists) return exists;
+
+	// get the rest of the information needed
+	const videos = await youtube.getVideos(channelId);
+
+	return {
+		channel: {
+			id: channelId,
+			data: channelData,
+			videos: videos,
+		},
+	};
+}
+
+async function getChannelDataFromUrl(channelUrl: string) {
+	let supposedChannelId = channelUrl;
+
+	const urlTypes = ['/channel/', '/user/', '/c/'];
+	for (const urlType of urlTypes) {
+		if (channelUrl.includes(urlType)) {
+			supposedChannelId = channelUrl.split(urlType)[1].split('/')[0];
+			break;
+		}
+	}
+
+	const channelData = await youtube.parseChannel(supposedChannelId);
+	return channelData;
+}
+
 router.get(
 	'/get-channel-info',
 	query('channel').isString(),
 	async (req, res) => {
 		const { channel } = validate(req);
 
-		let supposedChannelId = channel;
+		const channelData = await getChannelDataFromUrl(channel);
+		const channelInfo = await getChannelInfo(channelData);
 
-		const urlTypes = ['/channel/', '/user/', '/c/'];
-		for (const urlType of urlTypes) {
-			if (channel.includes(urlType)) {
-				supposedChannelId = channel.split(urlType)[1].split('/')[0];
-				break;
-			}
-		}
-
-		try {
-			const channelData = await youtube.parseChannel(supposedChannelId);
-			const channelId = channelData.authorId;
-
-			let tempChannel;
-			if ((tempChannel = await db.getQueuedChannel(channelId)))
-				return res.json({
-					exists: 'queued',
-					channel: tempChannel,
-				});
-
-			if ((tempChannel = await db.getAcceptedChannel(channelId)))
-				return res.json({
-					exists: 'accepted',
-					channel: tempChannel,
-				});
-
-			if ((tempChannel = await db.getRejectedChannel(channelId)))
-				return res.json({
-					exists: 'rejected',
-					channel: tempChannel,
-				});
-
-			if ((tempChannel = await db.getFilteredChannel(channelId)))
-				return res.json({
-					exists: 'filtered',
-					channel: tempChannel,
-				});
-
-			if ((tempChannel = await db.getChannel(channelId)))
-				return res.json({
-					exists: 'added',
-					channel: tempChannel,
-				});
-
-			const videos = await youtube.getVideos(channelId);
-
-			const channelObj = {
-				id: channelId,
-				data: channelData,
-				videos: videos,
-			};
-
-			return res.json({
-				channel: channelObj,
-			});
-		} catch (e) {
-			return res.json({
-				error: 'channel not found',
-			});
-		}
+		return res.json(channelInfo);
 	}
 );
 
@@ -266,5 +278,18 @@ router.get('/get-count', async (req, res) => {
 		channels,
 	});
 });
+
+router.get(
+	'/get-video-upload-date',
+	query('videoId').isString(),
+	async (req, res) => {
+		const { videoId } = validate(req);
+
+		const video = await db.getVideo(videoId);
+		if (!video) return res.json(null);
+
+		return res.json(video.data.upload_date);
+	}
+);
 
 export default router;
