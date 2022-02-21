@@ -42,7 +42,7 @@ const SearchChannelsResult = ({
 				loading: true,
 			});
 
-			const data = await Api.get('/get-channel-info', {
+			const data = await Api.get('/api/get-channel-info', {
 				channel: channelUrl,
 			});
 
@@ -86,7 +86,7 @@ const SearchChannelsResult = ({
 		setDestination(destination);
 
 		try {
-			await Api.post('/add-channel', {
+			await Api.post('/api/add-channel', {
 				channelId: channel.data.channel.id,
 				destination,
 			});

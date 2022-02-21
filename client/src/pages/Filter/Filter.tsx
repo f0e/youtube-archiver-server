@@ -20,7 +20,7 @@ const QueueCount = (): ReactElement => {
 	const ws = useRef<WebSocket | null>(null);
 
 	useEffect(() => {
-		ws.current = new WebSocket('ws://localhost:3001/ws/queue-count');
+		ws.current = new WebSocket('ws://localhost:3001/api/ws/queue-count');
 		ws.current.onmessage = async (e: MessageEvent) => {
 			const count = JSON.parse(e.data);
 
@@ -52,7 +52,7 @@ const Filter = (): ReactElement => {
 	useDocumentTitle('bhop archive | filter');
 
 	const getNewChannel = async () => {
-		const channel = await Api.get('/get-queued-channel');
+		const channel = await Api.get('/api/get-queued-channel');
 		setChannels([channel]);
 	};
 

@@ -24,7 +24,7 @@ const ChannelPage = (): ReactElement => {
 	);
 
 	useEffect(() => {
-		Api.getState(setChannel, '/get-channel', {
+		Api.getState(setChannel, '/api/get-channel', {
 			channelId,
 		});
 	}, []);

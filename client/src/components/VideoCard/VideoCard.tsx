@@ -20,7 +20,7 @@ const VideoCardDate = ({ basicVideo }: VideoCardDateProps) => {
 	const Api = useContext(ApiContext);
 
 	const loadDate = async () => {
-		const newDate = await Api.get('/get-video-upload-date', {
+		const newDate = await Api.get('/api/get-video-upload-date', {
 			videoId: basicVideo.videoId,
 		});
 
@@ -78,7 +78,7 @@ export const VideoCard = ({
 						<LoadingImage
 							src={
 								basicVideo.downloaded
-									? `http://localhost:3000/get-video-thumbnail?videoId=${basicVideo.videoId}`
+									? `/api/get-video-thumbnail?videoId=${basicVideo.videoId}`
 									: basicVideo.videoThumbnails.at(-1).url
 							}
 							alt={`thumbnail for video '${basicVideo.title}' by ${basicVideo.author}`}

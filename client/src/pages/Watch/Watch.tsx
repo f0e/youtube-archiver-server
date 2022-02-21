@@ -117,7 +117,7 @@ const VideoComments = ({ comments }: VideoCommentsProps): ReactElement => {
 	useEffect(() => {
 		if (comments.length == 0) return;
 
-		Api.getState(setParsedCommenters, 'check-channels-parsed', {
+		Api.getState(setParsedCommenters, '/api/check-channels-parsed', {
 			channelIds: comments.map((comment) => comment.author_id),
 		});
 	}, [comments]);
@@ -336,7 +336,7 @@ const Watch = (): ReactElement => {
 	);
 
 	useEffect(() => {
-		Api.getState(setVideoInfo, 'get-video-info', {
+		Api.getState(setVideoInfo, '/api/get-video-info', {
 			videoId,
 		});
 	}, []);

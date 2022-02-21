@@ -37,8 +37,8 @@ app.use(
 // handle routes
 import apiRouter from './routes/api';
 import wsRouter from './routes/ws';
-app.use('/', apiRouter);
-app.use('/ws/', wsRouter);
+app.use('/api/', apiRouter);
+app.use('/api/ws/', wsRouter);
 
 // error handlers
 app.use((req, res, next) => {
@@ -91,7 +91,7 @@ async function start() {
 		});
 
 	archive.start();
-	download.downloadAllVideos();
+	// download.downloadAllVideos();
 	queue.start();
 	// connections.run();
 }

@@ -152,7 +152,9 @@ const DownloadedCount = (): ReactElement => {
 	const channelSocket = useRef<WebSocket | null>(null);
 
 	useEffect(() => {
-		videoSocket.current = new WebSocket('ws://localhost:3001/ws/video-count');
+		videoSocket.current = new WebSocket(
+			'ws://localhost:3001/api/ws/video-count'
+		);
 		videoSocket.current.onmessage = async (e: MessageEvent) => {
 			const count = JSON.parse(e.data);
 
@@ -163,7 +165,7 @@ const DownloadedCount = (): ReactElement => {
 		};
 
 		channelSocket.current = new WebSocket(
-			'ws://localhost:3001/ws/channel-count'
+			'ws://localhost:3001/api/ws/channel-count'
 		);
 		channelSocket.current.onmessage = async (e: MessageEvent) => {
 			const count = JSON.parse(e.data);
@@ -219,7 +221,7 @@ const Browse = (): ReactElement => {
 	useDocumentTitle('bhop archive | browse');
 
 	useEffect(() => {
-		Api.getState(setChannels, '/get-channels');
+		Api.getState(setChannels, '/api/get-channels');
 	}, []);
 
 	return (

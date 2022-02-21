@@ -11,7 +11,7 @@ const Connections = (): ReactElement => {
 	useDocumentTitle('bhop archive | connections');
 
 	useEffect(() => {
-		Api.get('/get-connections').then((data) => {
+		Api.get('/api/get-connections').then((data) => {
 			const getChannelIndex = (channelId: string) =>
 				Object.keys(data.channelNames).findIndex((id) => channelId == id);
 
