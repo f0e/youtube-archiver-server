@@ -91,7 +91,7 @@ async function start() {
 		});
 
 	archive.start();
-	// download.downloadAllVideos();
+	download.downloadAllVideos();
 	queue.start();
 	// connections.run();
 }
