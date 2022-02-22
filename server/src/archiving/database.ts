@@ -444,6 +444,34 @@ class Database {
 
 		return sortedComments;
 	};
+
+	getVideoIds = async () => {
+		const videos = this.db.collection('videos');
+
+		const videoIds = await videos
+			.find()
+			.project({
+				id: 1,
+				_id: 0,
+			})
+			.toArray();
+
+		return await videoIds.map((data) => data.id);
+	};
+
+	getChannelIds = async () => {
+		const channels = this.db.collection('channels');
+
+		const channelIds = await channels
+			.find()
+			.project({
+				id: 1,
+				_id: 0,
+			})
+			.toArray();
+
+		return await channelIds.map((data) => data.id);
+	};
 }
 
 const db = new Database();

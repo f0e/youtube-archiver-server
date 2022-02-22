@@ -232,7 +232,10 @@ const VideoPlayer = ({ video, channel }: VideoPlayerProps): ReactElement => {
 				onVolumeChange={storeVolume}
 				// autoPlay
 			>
-				<source src={`get-video-stream?videoId=${video.id}`} type="video/mp4" />
+				<source
+					src={`/api/get-video-stream?videoId=${video.id}`}
+					type="video/mp4"
+				/>
 			</video>
 
 			<div className="video-info">

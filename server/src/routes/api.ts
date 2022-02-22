@@ -196,8 +196,11 @@ router.get('/get-video-info', query('videoId').isString(), async (req, res) => {
 
 	const video = await db.getVideo(videoId);
 	const channel = await db.getChannel(video.data.channel_id);
+	const basicVideo = channel.videos.find(
+		(basicVideo: any) => basicVideo.videoId == videoId
+	);
 
-	return res.json({ video, channel });
+	return res.json({ video, channel, basicVideo });
 });
 
 router.get(
@@ -291,5 +294,17 @@ router.get(
 		return res.json(video.data.upload_date);
 	}
 );
+
+router.get('/get-video-ids', async (req, res) => {
+	const videoIds = await db.getVideoIds();
+
+	return res.json(videoIds);
+});
+
+router.get('/get-channel-ids', async (req, res) => {
+	const channelIds = await db.getChannelIds();
+
+	return res.json(channelIds);
+});
 
 export default router;
