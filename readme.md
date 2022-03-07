@@ -1,6 +1,6 @@
-# youtube archiver
+# youtube archiver server
 
-server .env
+.env
 
 ```
 DB_URI=
