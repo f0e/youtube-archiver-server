@@ -1,4 +1,4 @@
-# youtube archiver server
+# YouTube Archiver - Server
 
 .env
 
