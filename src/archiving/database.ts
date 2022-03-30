@@ -118,6 +118,43 @@ class Database {
 		clientListener.emit('queue');
 	};
 
+	updateChannel = async (channelId: string, channelData: any, videos: any) => {
+		const channels = this.db.collection('channels');
+
+		// get existing data
+		let channel = await this.getChannel(channelId);
+		if (!channel) return;
+
+		// update channel data
+		channel.data = channelData;
+
+		// merge videos
+		for (const video of videos) {
+			if (
+				channel.videos.find(
+					(existingVideo: any) => existingVideo.videoId == video.videoId
+				)
+			)
+				continue;
+
+			channel.videos.push(video);
+		}
+
+		await channels.replaceOne({ id: channelId }, channel);
+	};
+
+	setChannelUpdated = async (channelId: string) => {
+		const channels = this.db.collection('channels');
+		await channels.updateOne(
+			{ id: channelId },
+			{
+				$set: {
+					updateDate: Date.now(),
+				},
+			}
+		);
+	};
+
 	getQueuedChannelCount = async () => {
 		const channelQueue = this.db.collection('channelQueue');
 		return await channelQueue.countDocuments();
@@ -275,6 +312,12 @@ class Database {
 	getVideos = async () => {
 		const videos = this.db.collection('videos');
 		return await videos.find().toArray();
+	};
+
+	getUndownloadedVideos = async () => {
+		const videos = this.db.collection('videos');
+		// note: the video could have been manually deleted though. todo: handle that
+		return await videos.find({ downloaded: { $in: [null, false] } }).toArray();
 	};
 
 	getVideoCount = async () => {

@@ -1,3 +1,6 @@
+import fs from 'fs-extra';
+import path from 'path';
+
 import * as youtube from './youtube';
 import * as filters from './filter';
 import * as connections from '../connections/connections';
@@ -9,6 +12,30 @@ import sleep from '../util/sleep';
 // event emitters for websockets
 export const clientListener = new EventEmitter();
 export const acceptedChannelListener = new EventEmitter();
+
+async function updateChannel(channelId: string) {
+	while (true) {
+		try {
+			const channelData = await youtube.parseChannel(channelId);
+			if (channelData.alertMessage) {
+				console.log(channelData.alertMessage);
+				return false;
+			}
+
+			const videos = await youtube.getVideos(channelId);
+
+			await db.updateChannel(channelId, channelData, videos);
+
+			console.log(`updated channel ${channelData.author}`);
+
+			return true;
+		} catch (e) {
+			console.log(e);
+			console.log('failed to parse channel, retrying in 5 seconds');
+			await sleep(5000);
+		}
+	}
+}
 
 async function addChannel(channelId: string, isFiltered: boolean = false) {
 	if (await db.isChannelQueued(channelId)) return false;
@@ -83,16 +110,21 @@ async function addRelation(channelId: string, commentedChannelId: string) {
 	);
 }
 
-async function parseChannelVideos(channel: any) {
+async function parseChannelVideos(
+	channel: any,
+	reparseVideos: boolean = false
+) {
 	console.log(`parsing ${channel.data.author}'s videos`);
 
 	for (const video of channel.videos) {
 		const { videoId } = video;
 
 		// don't re-parse videos
-		if (await db.isVideoParsed(videoId)) {
-			console.log(`already parsed video '${video.title}'`);
-			continue;
+		if (!reparseVideos) {
+			if (await db.isVideoParsed(videoId)) {
+				// console.log(`already parsed video '${video.title}'`);
+				continue;
+			}
 		}
 
 		// filter videos
@@ -106,7 +138,7 @@ async function parseChannelVideos(channel: any) {
 				console.log();
 
 				console.log(
-					`parsing video '${video.title}' (https://youtu.be/${videoId})`
+					`parsing new video '${video.title}' (https://youtu.be/${videoId})`
 				);
 
 				const { videoData, commenters } = await youtube.parseVideo(
@@ -115,7 +147,7 @@ async function parseChannelVideos(channel: any) {
 
 				const parsingCommenters = !filters.filterComments(channel, commenters);
 
-				if (parsingCommenters) {
+				if (parsingCommenters && commenters.length > 0) {
 					console.log(`parsing ${commenters.length} commenters`);
 
 					for (const [i, commenter] of commenters.entries()) {
@@ -153,14 +185,11 @@ async function parseChannelVideos(channel: any) {
 	}
 
 	console.log();
-
 	console.log('parsed all videos');
-
-	await db.onChannelParsed(channel.id);
 }
 
 let parsing = false; // stupid solution todo: better please
-async function parseChannels() {
+async function parseAcceptedChannels() {
 	if (parsing) return;
 	parsing = true;
 
@@ -173,13 +202,48 @@ async function parseChannels() {
 			await parseChannelVideos(channel);
 		} else {
 			// don't download videos :)
-			await db.onChannelParsed(channel.id);
 			console.log('not downloading.');
 		}
+
+		await db.onChannelParsed(channel.id);
+		await db.setChannelUpdated(channel.id);
 	}
 
 	console.log('no more channels queued');
 	parsing = false;
+}
+
+async function reparseChannels() {
+	const updateFrequencySeconds = 24 * 60 * 60; // 1 day
+
+	console.log('re-parsing channels');
+
+	const channels = (await db.getChannels()).filter(
+		(channel) =>
+			!channel.updateDate ||
+			Date.now() - channel.updateDate > updateFrequencySeconds * 1000
+	);
+
+	for (const [i, channel] of channels.entries()) {
+		if (i != 0) console.log();
+
+		console.log(
+			`${channel.data.author} (${i + 1}/${
+				channels.length
+			}) https://youtube.com/channel/${channel.id}`
+		);
+
+		if (await updateChannel(channel.id)) {
+			if (!channel.dontDownload) {
+				console.log('parsing videos...');
+				await parseChannelVideos(channel);
+			}
+
+			await db.setChannelUpdated(channel.id);
+		}
+	}
+
+	console.log('re-parsed all channels');
 }
 
 async function fix() {
@@ -245,9 +309,6 @@ async function setRelations(collection: string, channelIds: string[]) {
 
 	console.log('updated relations');
 }
-
-import fs from 'fs-extra';
-import path from 'path';
 
 export async function start() {
 	// const videos = await db.getMostCommentedVideos();
@@ -317,7 +378,8 @@ export async function start() {
 		await addChannel(process.env.START_CHANNEL);
 	}
 
-	parseChannels();
+	acceptedChannelListener.on('accepted', () => parseAcceptedChannels());
 
-	acceptedChannelListener.on('accepted', () => parseChannels());
+	await parseAcceptedChannels();
+	await reparseChannels();
 }

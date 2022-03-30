@@ -33,12 +33,9 @@ export async function downloadAllVideos() {
 	// await updateVideosDownloaded();
 	// console.log('updated downloaded videos');
 
-	const videos = await db.getVideos();
+	const videos = await db.getUndownloadedVideos();
 
 	for (const [i, video] of videos.entries()) {
-		// check if it's already been downloaded (COULD BE DELETED THOUGH. todo: MANAGE THAT)
-		if (video.downloaded) continue;
-
 		// const videoPath = await getVideoPath(video, true);
 		// if (!fs.existsSync(videoPath)) throw new Error('video deleted');
 

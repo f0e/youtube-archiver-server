@@ -10,7 +10,7 @@
 			"name": "Debug",
 			"runtimeExecutable": "yarn",
 			"runtimeArgs": ["run", "dev"],
-			"cwd": "${workspaceFolder}/server",
+			"cwd": "${workspaceFolder}",
 			"skipFiles": [
 				"${workspaceFolder}/node_modules/**/*.js",
 				"<node_internals>/**"
