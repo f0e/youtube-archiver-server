@@ -7,7 +7,7 @@ import * as connections from '../connections/connections';
 
 import db from './database';
 import EventEmitter from 'events';
-import sleep from '../util/sleep';
+import { sleep, filterPromise } from '../util/util';
 
 // event emitters for websockets
 export const clientListener = new EventEmitter();
@@ -19,16 +19,14 @@ async function updateChannel(channelId: string) {
 			const channelData = await youtube.parseChannel(channelId);
 			if (channelData.alertMessage) {
 				console.log(channelData.alertMessage);
-				return false;
+				return [false, 0];
 			}
 
 			const videos = await youtube.getVideos(channelId);
 
-			await db.updateChannel(channelId, channelData, videos);
+			const newVideos = await db.updateChannel(channelId, channelData, videos);
 
-			console.log(`updated channel ${channelData.author}`);
-
-			return true;
+			return [true, newVideos];
 		} catch (e) {
 			console.log(e);
 			console.log('failed to parse channel, retrying in 5 seconds');
@@ -37,14 +35,8 @@ async function updateChannel(channelId: string) {
 	}
 }
 
-async function addChannel(channelId: string, isFiltered: boolean = false) {
-	if (await db.isChannelQueued(channelId)) return false;
-	if (await db.isChannelAccepted(channelId)) return false;
-	if (await db.isChannelRejected(channelId)) return false;
-	if (await db.isChannelParsed(channelId)) return false;
-	if (!isFiltered) {
-		if (await db.isChannelFiltered(channelId)) return false;
-	}
+async function addChannel(channelId: string) {
+	if (await db.isChannelSeenAny(channelId)) return false;
 
 	const add = async () => {
 		// const commentedChannels = await db.getChannelsCommentedOn(channelId);
@@ -77,7 +69,7 @@ async function addChannel(channelId: string, isFiltered: boolean = false) {
 		try {
 			const added = await add();
 
-			if (!isFiltered && !added) {
+			if (!added) {
 				await db.filterChannel(channelId);
 			}
 
@@ -91,7 +83,6 @@ async function addChannel(channelId: string, isFiltered: boolean = false) {
 }
 
 async function addRelation(channelId: string, commentedChannelId: string) {
-	// don't know where the channel is, so just try each collection (bad)
 	const collectionNames = [
 		'acceptedChannelQueue',
 		'channelQueue',
@@ -100,6 +91,7 @@ async function addRelation(channelId: string, commentedChannelId: string) {
 		'rejectedChannels',
 	];
 
+	// don't know where the channel is, so just try each collection (bad)
 	for (const collectionName of collectionNames) {
 		if (await db.addRelation(channelId, collectionName, commentedChannelId))
 			return;
@@ -129,13 +121,15 @@ async function parseChannelVideos(
 
 		// filter videos
 		if (filters.filterVideoBasic(video)) {
-			console.log(`☠️ filtered video '${video.title}'`);
+			console.log(
+				`☠️ filtered video '${video.title}' (https://youtu.be/${videoId})`
+			);
 			continue;
 		}
 
 		while (true) {
 			try {
-				console.log();
+				console.log('');
 
 				console.log(
 					`parsing new video '${video.title}' (https://youtu.be/${videoId})`
@@ -151,7 +145,7 @@ async function parseChannelVideos(
 					console.log(`parsing ${commenters.length} commenters`);
 
 					for (const [i, commenter] of commenters.entries()) {
-						console.log(`commenter ${i + 1}/${commenters.length}`);
+						// console.log(`commenter ${i + 1}/${commenters.length}`);
 
 						await addChannel(commenter);
 
@@ -165,7 +159,7 @@ async function parseChannelVideos(
 
 				await db.addVideo(videoId, videoData, parsingCommenters);
 
-				console.log('done');
+				console.log('added video');
 			} catch (e) {
 				const isPrivate = e.message.includes(
 					'Video unavailable. This video is private'
@@ -184,17 +178,18 @@ async function parseChannelVideos(
 		}
 	}
 
-	console.log();
 	console.log('parsed all videos');
 }
 
-let parsing = false; // stupid solution todo: better please
 async function parseAcceptedChannels() {
-	if (parsing) return;
-	parsing = true;
+	while (true) {
+		const channel = await db.getNextChannel();
+		if (!channel) {
+			// wait 1s and try again
+			await sleep(1000);
+			continue;
+		}
 
-	let channel;
-	while ((channel = await db.getNextChannel())) {
 		const queuedCount = await db.getAcceptedChannelCount();
 		console.log(`parsing new channel... ${queuedCount} channels queued`);
 
@@ -208,42 +203,63 @@ async function parseAcceptedChannels() {
 		await db.onChannelParsed(channel.id);
 		await db.setChannelUpdated(channel.id);
 	}
-
-	console.log('no more channels queued');
-	parsing = false;
 }
 
-async function reparseChannels() {
-	const updateFrequencySeconds = 24 * 60 * 60; // 1 day
+export async function reparseChannels() {
+	const updateGapSeconds = 6 * 60 * 60; // 4 times a day
 
-	console.log('re-parsing channels');
-
-	const channels = (await db.getChannels()).filter(
-		(channel) =>
-			!channel.updateDate ||
-			Date.now() - channel.updateDate > updateFrequencySeconds * 1000
-	);
-
-	for (const [i, channel] of channels.entries()) {
-		if (i != 0) console.log();
-
-		console.log(
-			`${channel.data.author} (${i + 1}/${
-				channels.length
-			}) https://youtube.com/channel/${channel.id}`
+	while (true) {
+		const channels = (await db.getChannels()).filter(
+			(channel) =>
+				!channel.updateDate ||
+				Date.now() - channel.updateDate > updateGapSeconds * 1000
 		);
 
-		if (await updateChannel(channel.id)) {
+		if (channels.length == 0) {
+			await sleep(1000);
+			continue;
+		}
+
+		console.log(`re-parsing ${channels.length} channels`);
+
+		for (const [i, channel] of channels.entries()) {
+			if (i != 0) console.log('');
+
+			console.log(
+				`${channel.data.author} (${i + 1}/${
+					channels.length
+				}) https://youtube.com/channel/${channel.id}`
+			);
+
+			const [updated, newVideos] = await updateChannel(channel.id);
+
+			if (updated && newVideos > 0) {
+				console.log(`found ${newVideos} new video${newVideos != 1 ? 's' : ''}`);
+
+				// if (!channel.dontDownload) {
+				// 	await parseChannelVideos(channel);
+				// }
+			}
+
 			if (!channel.dontDownload) {
-				console.log('parsing videos...');
 				await parseChannelVideos(channel);
 			}
 
 			await db.setChannelUpdated(channel.id);
 		}
-	}
 
-	console.log('re-parsed all channels');
+		console.log('re-parsed all channels');
+	}
+}
+
+export async function parseVideos() {
+	const channels = await db.getChannels();
+
+	for (const [i, channel] of channels.entries()) {
+		if (!channel.dontDownload) {
+			await parseChannelVideos(channel);
+		}
+	}
 }
 
 async function fix() {
@@ -278,21 +294,6 @@ async function fix() {
 	console.log('removed duplicate documents');
 }
 
-async function reFilter() {
-	const filteredChannels = await db.getFilteredChannels();
-	for (const [i, filteredChannel] of filteredChannels.entries()) {
-		const progressString = `${i + 1}/${filteredChannels.length}`;
-		console.log(
-			`refiltering ${progressString} (https://youtube.com/channel/${filteredChannel.id})`
-		);
-
-		if (await addChannel(filteredChannel.id, true)) {
-			await db.removeFromFilter(filteredChannel.id);
-		}
-		console.log('done');
-	}
-}
-
 async function setRelations(collection: string, channelIds: string[]) {
 	console.log('getting relations');
 
@@ -310,7 +311,7 @@ async function setRelations(collection: string, channelIds: string[]) {
 	console.log('updated relations');
 }
 
-export async function start() {
+export async function parseChannels() {
 	// const videos = await db.getMostCommentedVideos();
 	// await fs.writeFile(
 	// 	'most commented.txt',
@@ -378,8 +379,133 @@ export async function start() {
 		await addChannel(process.env.START_CHANNEL);
 	}
 
-	acceptedChannelListener.on('accepted', () => parseAcceptedChannels());
+	parseAcceptedChannels();
+}
 
-	await parseAcceptedChannels();
-	await reparseChannels();
+export async function parsePlaylist(playlistId: string) {
+	console.log(`parsing playlist ${playlistId}`);
+
+	const playlist = await youtube.getPlaylist(playlistId);
+
+	console.log(`got ${playlist.items.length} videos`);
+	console.log('');
+
+	const channelVideos: { [key: string]: any[] } = {};
+	for (const video of playlist.items) {
+		const id = video.author.channelID;
+		if (!(id in channelVideos)) channelVideos[id] = [];
+
+		channelVideos[id].push(video);
+	}
+
+	let unlistedVideosTotal = 0;
+
+	let logged = false;
+	const logWrap = (msg: string) => {
+		console.log(msg);
+		if (!logged) logged = true;
+	};
+
+	for (const [i, [channelId, playlistVideos]] of Object.entries(
+		channelVideos
+	).entries()) {
+		if (logged) {
+			console.log('');
+			logged = false;
+		}
+
+		// check if the channel's been added
+		let channel = await db.getChannelAny(channelId);
+		let justAddedChannel = false;
+		if (!channel) {
+			logWrap(
+				`new channel - ${playlistVideos[0].author.name} https://youtube.com/channel/${channelId}`
+			);
+
+			if (!(await addChannel(channelId))) {
+				// don't want channel, so don't add video.
+				logWrap('Fail');
+				continue;
+			}
+
+			justAddedChannel = true;
+			channel = await db.getChannelAny(channelId);
+		}
+
+		if (!channel) throw "should've been added...";
+
+		// find unlisted videos
+		let videos = [];
+		for (const video of playlistVideos) {
+			// check if the video's been added
+			const foundVideo = channel.videos.find(
+				(channelVideo: any) => channelVideo.videoId == video.id
+			);
+			if (foundVideo) {
+				if (foundVideo.fromPlaylist) unlistedVideosTotal++;
+				continue;
+			}
+
+			logWrap(
+				`(${i + 1}/${Object.keys(channelVideos).length}) ${
+					playlistVideos[0].author.name
+				} - new video ${video.author.name} - ${video.title} (${video.shortUrl})`
+			);
+
+			// transform data into same format
+			videos.push({
+				fromPlaylist: true,
+
+				// type: "video",
+				title: video.title,
+				videoId: video.id,
+				author: video.author.name,
+				authorId: video.author.channelID,
+				videoThumbnails: video.thumbnails,
+				// viewCountText: null,
+				// viewCount: null,
+				// publishedText: null,
+				durationText: video.duration,
+				lengthSeconds: video.durationSec,
+				liveNow: video.isLive,
+				// premiere: null,
+				// premium: null,
+			});
+		}
+
+		// check if it's even worth re-parsing
+		if (videos.length == 0) continue;
+
+		if (!justAddedChannel) {
+			// re-parse channel to filter out not actually unlisted videos just in case it's outdated
+			const [updated, newVideos] = await updateChannel(channelId);
+			if (updated && newVideos > 0) {
+				logWrap(`found ${newVideos} new video${newVideos != 1 ? 's' : ''}`);
+
+				logWrap(`${videos.length} unlisted`);
+				videos = await filterPromise(videos, (video) =>
+					db.isVideoFoundAny(video.id)
+				);
+				logWrap(`-> ${videos.length} unlisted`);
+			}
+		}
+
+		if (videos.length > 0) {
+			const newVideos = await db.updateChannel(channelId, channel.data, videos);
+
+			logWrap(
+				`updated channel ${
+					channel.data.author
+				} with ${newVideos} unlisted video${newVideos != 1 ? 's' : ''}`
+			);
+
+			unlistedVideosTotal += newVideos;
+		}
+	}
+
+	console.log(
+		`done - ${((unlistedVideosTotal / playlist.items.length) * 100).toFixed(
+			1
+		)}% unlisted videos (${unlistedVideosTotal}/${playlist.items.length})`
+	);
 }

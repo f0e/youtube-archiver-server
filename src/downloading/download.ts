@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import sleep from '../util/sleep';
+import { sleep } from '../util/util';
 
 import db from '../archiving/database';
 
@@ -28,45 +28,56 @@ export async function updateVideosDownloaded() {
 	}
 }
 
-export async function downloadAllVideos() {
-	// // update already downloaded videos
-	// await updateVideosDownloaded();
-	// console.log('updated downloaded videos');
+export async function downloadVideos() {
+	while (true) {
+		// // update already downloaded videos
+		// await updateVideosDownloaded();
+		// console.log('updated downloaded videos');
 
-	const videos = await db.getUndownloadedVideos();
+		const videos = await db.getUndownloadedVideos();
 
-	for (const [i, video] of videos.entries()) {
-		// const videoPath = await getVideoPath(video, true);
-		// if (!fs.existsSync(videoPath)) throw new Error('video deleted');
+		if (videos.length == 0) {
+			await sleep(1000);
+			continue;
+		}
 
-		const progressString = `${i + 1}/${videos.length}`;
-		console.log(
-			`downloading video '${video.data.title}' by ${video.data.uploader} (${progressString})`
-		);
+		console.log(`downloading ${videos.length} videos`);
 
-		while (true) {
-			try {
-				await downloadVideo(video.id);
+		for (const [i, video] of videos.entries()) {
+			// const videoPath = await getVideoPath(video, true);
+			// if (!fs.existsSync(videoPath)) throw new Error('video deleted');
 
-				await db.updateVideoDownloaded(video.id);
-				console.log('done');
+			const progressString = `${i + 1}/${videos.length}`;
+			console.log(
+				`downloading video '${video.data.title}' by ${video.data.uploader} (${progressString})`
+			);
 
-				break;
-			} catch (e) {
-				if (
-					e.message &&
-					e.message.includes(
-						'ERROR: unable to download video data: [Errno 2] No such file or directory'
-					)
-				) {
-					await fs.appendFile('failed downloads.txt', video.id + '\n');
+			while (true) {
+				try {
+					await downloadVideo(video.id);
+
+					await db.updateVideoDownloaded(video.id);
+					console.log('done');
+
 					break;
-				}
+				} catch (e) {
+					if (
+						e.message &&
+						e.message.includes(
+							'ERROR: unable to download video data: [Errno 2] No such file or directory'
+						)
+					) {
+						await fs.appendFile('failed downloads.txt', video.id + '\n');
+						break;
+					}
 
-				console.log(e);
-				console.log('failed to download, retrying in 5 seconds');
-				await sleep(5000);
+					console.log(e);
+					console.log('failed to download, retrying in 5 seconds');
+					await sleep(5000);
+				}
 			}
 		}
+
+		console.log('downloaded all videos');
 	}
 }

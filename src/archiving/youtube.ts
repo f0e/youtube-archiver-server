@@ -1,4 +1,7 @@
 import YtDlpWrap from 'yt-dlp-wrap';
+
+// require because these plugins have sucky typescript support
+const ytpl = require('ytpl');
 const ytch = require('yt-channel-info');
 
 const ytDlpWrap = new YtDlpWrap();
@@ -89,6 +92,12 @@ export async function getVideos(channelId: string) {
 	} while (continuation);
 
 	return videos;
+}
+
+export async function getPlaylist(playlistId: string) {
+	return await ytpl(playlistId, {
+		limit: 'Infinity',
+	});
 }
 
 export function downloadVideo(videoId: string, downloadPath: string) {

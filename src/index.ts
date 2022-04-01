@@ -90,8 +90,9 @@ async function start() {
 			console.log(`fatal error: ${e.message}`);
 		});
 
-	archive.start();
-	download.downloadAllVideos();
+	archive.reparseChannels();
+	archive.parseChannels();
+	download.downloadVideos();
 	queue.start();
 	// connections.run();
 }

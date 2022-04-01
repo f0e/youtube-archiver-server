@@ -482,6 +482,11 @@ mime@1.6.0:
   resolved "https://registry.yarnpkg.com/mime/-/mime-1.6.0.tgz#32cd9e5c64553bd58d19a568af452acff04981b1"
   integrity sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg==
 
+miniget@^4.2.2:
+  version "4.2.2"
+  resolved "https://registry.yarnpkg.com/miniget/-/miniget-4.2.2.tgz#db20320f265efdc4c1826a0be431d56753074475"
+  integrity sha512-a7voNL1N5lDMxvTMExOkg+Fq89jM2vY8pAi9ZEWzZtfNmdfP6RXkvUtFnCAXoCv2T9k1v/fUJVaAEuepGcvLYA==
+
 mongodb-connection-string-url@^2.4.1:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/mongodb-connection-string-url/-/mongodb-connection-string-url-2.4.2.tgz#422861119764796420889f9b0416b957e1b0bde0"
@@ -816,3 +821,10 @@ yt-dlp-wrap@^2.3.11:
   version "2.3.11"
   resolved "https://registry.yarnpkg.com/yt-dlp-wrap/-/yt-dlp-wrap-2.3.11.tgz#cb36ea1c320de1806114137f1cc3a54b6e20c564"
   integrity sha512-B0982YLawUC6C8V6hA88bC+EvZ1Mu/dSY+4VcQ8fa60dp1ILT/YWAl4AeowTH+wrrdg6aL7vCXTxlkeacZd5kg==
+
+ytpl@^2.3.0:
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/ytpl/-/ytpl-2.3.0.tgz#74633b6e582e22ff03e409dfb65d200c1a4ca0d2"
+  integrity sha512-Cfw2rxq3PFK6qgWr2Z8gsRefVahEzbn9XEuiJldqdXHE6GhO7kTfEvbZKdfXing1SmgW635uJ/UL2g8r0fvu2Q==
+  dependencies:
+    miniget "^4.2.2"

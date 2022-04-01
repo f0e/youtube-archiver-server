@@ -6,6 +6,14 @@ import { getVideoPath } from '../downloading/download';
 import * as queue from '../queue/queue';
 
 class Database {
+	collectionNames = [
+		'channels',
+		'channelQueue',
+		'acceptedChannelQueue',
+		'rejectedChannels',
+		// 'filteredChannels',
+	];
+
 	client: MongoClient;
 	db: Db;
 
@@ -118,29 +126,40 @@ class Database {
 		clientListener.emit('queue');
 	};
 
-	updateChannel = async (channelId: string, channelData: any, videos: any) => {
-		const channels = this.db.collection('channels');
+	updateChannel = async (
+		channelId: string,
+		channelData: any,
+		videos: any
+	): Promise<number> => {
+		// don't know where the channel is, so just try each collection (bad)
+		for (const collectionName of this.collectionNames) {
+			const channels = this.db.collection(collectionName);
+			const channel = await channels.findOne({ id: channelId });
+			if (!channel) continue;
 
-		// get existing data
-		let channel = await this.getChannel(channelId);
-		if (!channel) return;
+			// update channel data
+			channel.data = channelData;
 
-		// update channel data
-		channel.data = channelData;
-
-		// merge videos
-		for (const video of videos) {
-			if (
-				channel.videos.find(
-					(existingVideo: any) => existingVideo.videoId == video.videoId
+			// merge videos
+			let newVideos = 0;
+			for (const video of videos) {
+				if (
+					channel.videos.find(
+						(existingVideo: any) => existingVideo.videoId == video.videoId
+					)
 				)
-			)
-				continue;
+					continue;
 
-			channel.videos.push(video);
+				channel.videos.push(video);
+				newVideos++;
+			}
+
+			await channels.replaceOne({ id: channelId }, channel);
+
+			return newVideos;
 		}
 
-		await channels.replaceOne({ id: channelId }, channel);
+		return null;
 	};
 
 	setChannelUpdated = async (channelId: string) => {
@@ -304,6 +323,22 @@ class Database {
 		return await channels.countDocuments();
 	};
 
+	getChannelAny = async (channelId: string) => {
+		// really don't like this, probably shouldn't have set up the database like i did. whatever.
+		for (const collectionName of this.collectionNames) {
+			const channels = this.db.collection(collectionName);
+			const channel = await channels.findOne({ id: channelId });
+			if (channel) return channel;
+		}
+
+		return null;
+	};
+
+	isChannelSeenAny = async (channelId: string) => {
+		const channel = await this.getChannelAny(channelId);
+		return channel != null;
+	};
+
 	getVideo = async (videoId: string) => {
 		const videos = this.db.collection('videos');
 		return await videos.findOne({ id: videoId });
@@ -358,6 +393,32 @@ class Database {
 	isVideoParsed = async (videoId: string) => {
 		const video = await this.getVideo(videoId);
 		return video != null;
+	};
+
+	getSimpleVideo = async (videoId: string) => {
+		const channels = this.db.collection('channels');
+		return await channels.findOne({ 'videos.videoId': videoId });
+	};
+
+	isVideoFound = async (videoId: string) => {
+		const simpleVideo = await this.getSimpleVideo(videoId);
+		return simpleVideo != null;
+	};
+
+	getSimpleVideoAny = async (videoId: string) => {
+		// really don't like this, probably shouldn't have set up the database like i did. whatever.
+		for (const collectionName of this.collectionNames) {
+			const channels = this.db.collection(collectionName);
+			const video = await channels.findOne({ 'videos.videoId': videoId });
+			if (video) return video;
+		}
+
+		return null;
+	};
+
+	isVideoFoundAny = async (videoId: string) => {
+		const simpleVideo = await this.getSimpleVideoAny(videoId);
+		return simpleVideo != null;
 	};
 
 	checkDuplicates = async (collectionName: string) => {
