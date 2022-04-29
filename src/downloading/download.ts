@@ -47,9 +47,10 @@ export async function downloadVideos() {
 			// const videoPath = await getVideoPath(video, true);
 			// if (!fs.existsSync(videoPath)) throw new Error('video deleted');
 
-			const progressString = `${i + 1}/${videos.length}`;
 			console.log(
-				`downloading video '${video.data.title}' by ${video.data.uploader} (${progressString})`
+				`${i + 1}/${videos.length} - downloading video '${
+					video.data.title
+				}' by ${video.data.uploader} (${video.data.original_url})`
 			);
 
 			while (true) {
@@ -61,17 +62,29 @@ export async function downloadVideos() {
 
 					break;
 				} catch (e) {
-					if (
-						e.message &&
-						e.message.includes(
-							'ERROR: unable to download video data: [Errno 2] No such file or directory'
-						)
-					) {
-						await fs.appendFile('failed downloads.txt', video.id + '\n');
-						break;
+					console.log(e);
+
+					if (e.message) {
+						// random error idk
+						if (
+							e.message.includes(
+								'ERROR: unable to download video data: [Errno 2] No such file or directory'
+							)
+						) {
+							break;
+						}
+
+						// privated/deleted
+						const removedMessages = [
+							'Video unavailable. This video has been removed by the uploader',
+							'Video unavailable. This video is private',
+						];
+
+						for (const message of removedMessages) {
+							if (e.message.includes(message)) break;
+						}
 					}
 
-					console.log(e);
 					console.log('failed to download, retrying in 5 seconds');
 					await sleep(5000);
 				}

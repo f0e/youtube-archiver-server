@@ -152,16 +152,49 @@ router.post(
 	}
 );
 
+async function sortVideos(channel: any) {
+	// sort videos
+	const uploadDates = await Promise.all(
+		channel.videos.map(async (video: any) => [
+			video.videoId,
+			await db.getVideoUploadDate(video.videoId),
+		])
+	);
+
+	channel.videos.sort((a: any, b: any) => {
+		let [_, aDate] = uploadDates.find(
+			([dateVideoId, date]) => dateVideoId == a.videoId
+		);
+		let [_2, bDate] = uploadDates.find(
+			([dateVideoId, date]) => dateVideoId == b.videoId
+		);
+
+		// not parsed, show at the end
+		if (!aDate) aDate = Number.MAX_VALUE;
+		if (!bDate) bDate = Number.MAX_VALUE;
+
+		return aDate - bDate;
+	});
+
+	return channel;
+}
+
 router.get('/get-channel', query('channelId').isString(), async (req, res) => {
 	const { channelId } = validate(req);
 
-	const channel = await db.getChannel(channelId);
+	let channel = await db.getChannel(channelId);
+
+	channel = await sortVideos(channel);
 
 	return res.json(channel);
 });
 
 router.get('/get-channels', async (req, res) => {
-	const channels = await db.getChannels();
+	let channels = await db.getChannels();
+
+	// channels = await Promise.all(
+	// 	channels.map(async (channel: any) => await sortVideos(channel))
+	// );
 
 	return res.json(channels);
 });

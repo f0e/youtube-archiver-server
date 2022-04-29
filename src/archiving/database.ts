@@ -360,6 +360,24 @@ class Database {
 		return await videos.countDocuments();
 	};
 
+	getVideoUploadDate = async (videoId: string) => {
+		const videos = this.db.collection('videos');
+		const uploadDate = await videos.findOne(
+			{
+				id: videoId,
+			},
+			{
+				projection: {
+					'data.epoch': 1,
+					_id: 0,
+				},
+			}
+		);
+
+		if (!uploadDate) return null;
+		return uploadDate.data.epoch;
+	};
+
 	getDownloadedVideoCount = async () => {
 		const videos = this.db.collection('videos');
 		return await videos.countDocuments({ downloaded: true });
