@@ -65,24 +65,22 @@ export async function downloadVideos() {
 					console.log(e);
 
 					if (e.message) {
-						// random error idk
-						if (
-							e.message.includes(
-								'ERROR: unable to download video data: [Errno 2] No such file or directory'
-							)
-						) {
-							break;
-						}
-
-						// privated/deleted
 						const removedMessages = [
+							'ERROR: unable to download video data: [Errno 2] No such file or directory', // idk what this is
 							'Video unavailable. This video has been removed by the uploader',
 							'Video unavailable. This video is private',
 						];
 
+						// handle privated/deleted videos
+						let dontDownload = false;
 						for (const message of removedMessages) {
-							if (e.message.includes(message)) break;
+							if (e.message.includes(message)) {
+								dontDownload = true;
+								break;
+							}
 						}
+
+						if (dontDownload) break;
 					}
 
 					console.log('failed to download, retrying in 5 seconds');
