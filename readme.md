@@ -2,7 +2,7 @@
 
 This is the server code for my YouTube archiver.
 
-[Client repository](https://github.com/f0e/youtube-archiver-server)
+[Client repository](https://github.com/f0e/youtube-archiver)
 
 ## Requirements
 
