@@ -1,10 +1,10 @@
 import express from 'express';
 import { query, body } from 'express-validator';
-import validate from '../util/validate';
+import validate from '../../util/validate';
 import WebSocket from 'ws';
 
-import db from '../archiving/database';
-import { clientListener } from '../archiving/archive';
+import db from '../../archiving/database';
+import { clientListener } from '../../archiving/archive';
 
 const router = express.Router();
 

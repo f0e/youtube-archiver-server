@@ -5,6 +5,8 @@ import { acceptedChannelListener, clientListener } from './archive';
 import { getVideoPath } from '../downloading/download';
 import * as queue from '../queue/queue';
 
+const log = (...params: any[]) => console.log('[db]', ...params);
+
 class Database {
 	collectionNames = [
 		'channels',
@@ -33,7 +35,7 @@ class Database {
 
 	// 	const channel = await channels.findOne({ id: channelId });
 	// 	if (channel) {
-	// 		console.log(
+	// 		log(
 	// 			`channel '${name}' already exists, updating names and avatars`
 	// 		);
 
@@ -47,7 +49,7 @@ class Database {
 	// 			data: channelData,
 	// 		});
 
-	// 		console.log(`added channel '${name}'`);
+	// 		log(`added channel '${name}'`);
 	// 	}
 	// };
 
@@ -62,7 +64,7 @@ class Database {
 
 		const video = await videos.findOne({ id: videoId });
 		if (video) {
-			console.log(`video '${title}' already exists, updating titles`);
+			log(`video '${title}' already exists, updating titles`);
 
 			await videos.updateOne(
 				{ id: videoId },
@@ -184,12 +186,18 @@ class Database {
 		return await channelQueue.findOne({ id: channelId });
 	};
 
-	getQueuedChannels = async (minRelations: number = 0) => {
+	getQueuedChannels = async (
+		minRelations: number = 0,
+		minVideos: number = 0
+	) => {
 		const channelQueue = this.db.collection('channelQueue');
 
 		const searchOpts: any = {};
 		if (minRelations > 0)
 			searchOpts[`relations.${minRelations - 1}`] = { $exists: true };
+
+		if (minVideos > 0)
+			searchOpts[`videos.${minVideos - 1}`] = { $exists: true };
 
 		return await channelQueue.find(searchOpts).toArray();
 	};
@@ -203,8 +211,9 @@ class Database {
 		channelId: string,
 		destination: 'accept' | 'reject' | 'acceptNoDownload'
 	) => {
-		const channelQueue = this.db.collection('channelQueue');
-		const channel = await channelQueue.findOne({ id: channelId });
+		const { channel, collection: curCollection } = await this.getChannelAny(
+			channelId
+		);
 		if (!channel) return;
 
 		// move the channel
@@ -222,15 +231,17 @@ class Database {
 			}
 		};
 
-		const newQueue = getDestination();
-		if (!newQueue) throw new Error('invalid destination');
+		const newCollection = getDestination();
+		if (!newCollection) throw new Error('invalid destination');
 
-		if (destination == 'acceptNoDownload') {
-			channel.dontDownload = true;
-		}
+		// check if moving to same place.
+		if (curCollection.collectionName == newCollection.collectionName) return;
 
-		await newQueue.insertOne(channel);
-		await channelQueue.deleteOne({ id: channelId });
+		channel.dontDownload = destination == 'acceptNoDownload';
+		delete channel.updateDate;
+
+		await newCollection.insertOne(channel);
+		await curCollection.deleteOne({ id: channelId });
 
 		// update queue
 		queue.onAcceptOrRejectChannel(channelId);
@@ -326,16 +337,19 @@ class Database {
 	getChannelAny = async (channelId: string) => {
 		// really don't like this, probably shouldn't have set up the database like i did. whatever.
 		for (const collectionName of this.collectionNames) {
-			const channels = this.db.collection(collectionName);
-			const channel = await channels.findOne({ id: channelId });
-			if (channel) return channel;
+			const collection = this.db.collection(collectionName);
+			const channel = await collection.findOne({ id: channelId });
+			if (channel) return { channel, collection };
 		}
 
-		return null;
+		return {
+			channel: null,
+			collection: null,
+		};
 	};
 
 	isChannelSeenAny = async (channelId: string) => {
-		const channel = await this.getChannelAny(channelId);
+		const { channel } = await this.getChannelAny(channelId);
 		return channel != null;
 	};
 
@@ -455,7 +469,7 @@ class Database {
 			])
 			.toArray();
 
-		console.log(
+		log(
 			`deleting ${duplicates.length} duplicates from ${collectionName}`
 		);
 
@@ -533,6 +547,8 @@ class Database {
 			.find()
 			.project({
 				id: 1,
+				'data.title': 1,
+				'data.uploader': 1,
 				'data.track': 1,
 				'data.artist': 1,
 				'data.duration': 1,

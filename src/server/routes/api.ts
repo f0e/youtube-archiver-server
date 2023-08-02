@@ -2,84 +2,86 @@ import fs from 'fs-extra';
 import express from 'express';
 import { query, body } from 'express-validator';
 import mm from 'music-metadata';
-import validate from '../util/validate';
+import validate from '../../util/validate';
 
-import * as youtube from '../archiving/youtube';
-import * as connections from '../connections/connections';
-import * as download from '../downloading/download';
-import * as queue from '../queue/queue';
+import * as archive from '../../archiving/archive';
+import * as youtube from '../../archiving/youtube';
+import * as connections from '../../connections/connections';
+import * as download from '../../downloading/download';
+import * as queue from '../../queue/queue';
 
-import db from '../archiving/database';
+import db from '../../archiving/database';
 
 const router = express.Router();
 
-async function getChannelExists(channelId: string) {
-	let channel;
-	if ((channel = await db.getQueuedChannel(channelId)))
-		return {
-			exists: 'queued',
-			channel,
-		};
-
-	if ((channel = await db.getAcceptedChannel(channelId)))
-		return {
-			exists: 'accepted',
-			channel,
-		};
-
-	if ((channel = await db.getRejectedChannel(channelId)))
-		return {
-			exists: 'rejected',
-			channel,
-		};
-
-	if ((channel = await db.getFilteredChannel(channelId)))
-		return {
-			exists: 'filtered',
-			channel,
-		};
-
-	if ((channel = await db.getChannel(channelId)))
-		return {
-			exists: 'added',
-			channel,
-		};
-
-	return false;
-}
-
 async function getChannelInfo(channelData: any) {
 	const channelId = channelData.authorId;
+	
+	const res = await db.getChannelAny(channelId);
 
-	// check if the channel already exists
-	const exists = await getChannelExists(channelId);
-	if (exists) return exists;
+	let channel: any = {};
 
-	// get the rest of the information needed
-	const videos = await youtube.getVideos(channelId);
+	// get videos
+	if (res.channel) {
+		const collectionName = res.collection.collectionName;
+		console.log('channel added already');
 
-	return {
-		channel: {
-			id: channelId,
-			data: channelData,
-			videos: videos,
-		},
-	};
+		// channel already added, update videos (and channel info)
+		const [updated, newVideos] = await archive.updateChannel(channelId);
+
+		if (updated && newVideos > 0) {
+			console.log(`found ${newVideos} new video${newVideos != 1 ? 's' : ''}`);
+		}
+
+		// get channel again
+		const newChannel = await db.getChannelAny(channelId);
+		console.log("new channel", newChannel);
+
+		const collectionDisplayMap: any = {
+			channels: 'added',
+			rejectedChannels: 'rejected',
+			filteredChannels: 'filtered',
+			acceptedChannelQueue: 'accepted',
+			channelQueue: 'queued',
+		};
+
+		return {
+			exists: collectionDisplayMap[collectionName] ?? '',
+			existsCollection: collectionName,
+			channel: newChannel.channel,
+		};
+	} else {
+		// channel not added yet, get videos for first time
+		const newVids = await youtube.getVideos(channelId);
+		if (!newVids) throw new Error('video fail');
+
+		console.log(channelData);
+
+		return {
+			channel: {
+				id: channelId,
+				data: channelData,
+				videos: newVids,
+			},
+		};
+	}
 }
 
 async function getChannelDataFromUrl(channelUrl: string) {
 	let supposedChannelId = channelUrl;
 
-	const urlTypes = ['/channel/', '/user/', '/c/'];
-	for (const urlType of urlTypes) {
-		if (channelUrl.includes(urlType)) {
-			supposedChannelId = channelUrl.split(urlType)[1].split('/')[0];
+	const urlTypes = ['/channel/', '/user/', '/c/', '/@'];
+
+	for (const [i, urlType] of urlTypes.entries()) {
+		const index = channelUrl.indexOf(urlType);
+
+		if (index != -1) {
+			supposedChannelId = channelUrl.substring(index + urlType.length);
 			break;
 		}
 	}
 
-	const channelData = await youtube.parseChannel(supposedChannelId);
-	return channelData;
+	return youtube.parseChannel(supposedChannelId);
 }
 
 router.get(
@@ -95,13 +97,19 @@ router.get(
 	}
 );
 
-router.get('/get-queued-channel', async (req, res) => {
-	const queuedChannel = await queue.getNextQueuedChannel();
+router.get(
+	'/get-queued-channel',
+	query('skip').isArray().optional(),
+	async (req, res) => {
+		const { skip } = validate(req);
 
-	if (!queuedChannel) throw new Error('no channels in queue');
+		const queuedChannel = await queue.getNextQueuedChannel(skip);
 
-	return res.json(queuedChannel);
-});
+		if (!queuedChannel) throw new Error('no channels in queue');
+
+		return res.json(queuedChannel);
+	}
+);
 
 router.post(
 	'/move-channel',
@@ -109,6 +117,8 @@ router.post(
 	body('destination').isString(),
 	async (req, res) => {
 		const { channelId, destination } = validate(req);
+
+		console.log('moving channel', channelId, 'to', destination);
 
 		await db.moveChannel(channelId, destination);
 

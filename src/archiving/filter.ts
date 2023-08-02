@@ -1,14 +1,14 @@
-const filters = {
+export const filters = {
 	// channels
 	minChannelsCommentedOn: 1,
 	minSubscribers: 0,
-	maxSubscribers: Number.MAX_VALUE,
-	maxVideos: Number.MAX_VALUE,
+	maxSubscribers: 100000,
+	maxVideos: 1000,
 
 	// videos
 	blockLivestreams: true,
 	blockNoVideos: false,
-	minVideoLength: 15,
+	minVideoLength: 0,
 	maxVideoLength: 60 * 5,
 	// minViews: 100,
 

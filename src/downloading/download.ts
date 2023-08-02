@@ -6,6 +6,8 @@ import db from '../archiving/database';
 
 import * as youtube from '../archiving/youtube';
 
+const log = (...params: any[]) => console.log('[download]', ...params);
+
 export function getVideoPath(video: any, withExtension: boolean = false) {
 	return path.join(
 		process.env.DOWNLOAD_FOLDER,
@@ -17,7 +19,9 @@ export function getVideoPath(video: any, withExtension: boolean = false) {
 export async function downloadVideo(videoId: string) {
 	const video = await db.getVideo(videoId);
 
-	await youtube.downloadVideo(videoId, getVideoPath(video));
+	await youtube.downloadVideo(videoId, getVideoPath(video), (progress: any) => {
+		// log(`${video.data.title} - ${progress.percent}%`);
+	});
 }
 
 export async function updateVideosDownloaded() {
@@ -30,10 +34,6 @@ export async function updateVideosDownloaded() {
 
 export async function downloadVideos() {
 	while (true) {
-		// // update already downloaded videos
-		// await updateVideosDownloaded();
-		// console.log('updated downloaded videos');
-
 		const videos = await db.getUndownloadedVideos();
 
 		if (videos.length == 0) {
@@ -41,13 +41,13 @@ export async function downloadVideos() {
 			continue;
 		}
 
-		console.log(`downloading ${videos.length} videos`);
+		log(`downloading ${videos.length} videos`);
 
 		for (const [i, video] of videos.entries()) {
 			// const videoPath = await getVideoPath(video, true);
 			// if (!fs.existsSync(videoPath)) throw new Error('video deleted');
 
-			console.log(
+			log(
 				`${i + 1}/${videos.length} - downloading video '${
 					video.data.title
 				}' by ${video.data.uploader} (${video.data.original_url})`
@@ -58,37 +58,38 @@ export async function downloadVideos() {
 					await downloadVideo(video.id);
 
 					await db.updateVideoDownloaded(video.id);
-					console.log('done');
+					log('done');
 
 					break;
 				} catch (e) {
-					console.log(e);
-
 					if (e.message) {
 						const removedMessages = [
 							'ERROR: unable to download video data: [Errno 2] No such file or directory', // idk what this is
 							'Video unavailable. This video has been removed by the uploader',
 							'Video unavailable. This video is private',
+							'Video unavailable. This video is no longer available because the uploader has closed their YouTube account.',
+							'Video unavailable',
 						];
 
 						// handle privated/deleted videos
-						let dontDownload = false;
-						for (const message of removedMessages) {
-							if (e.message.includes(message)) {
-								dontDownload = true;
-								break;
-							}
-						}
+						const dontDownload = removedMessages.find((msg) =>
+							e.message.includes(msg)
+						);
 
-						if (dontDownload) break;
+						if (dontDownload) {
+							log('video private/removed/etc. skipping.', dontDownload);
+							break;
+						}
 					}
 
-					console.log('failed to download, retrying in 5 seconds');
+					log(e);
+
+					log('failed to download, retrying in 5 seconds');
 					await sleep(5000);
 				}
 			}
 		}
 
-		console.log('downloaded all videos');
+		log('downloaded all videos');
 	}
 }
